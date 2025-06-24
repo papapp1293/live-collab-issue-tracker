@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: issuesdb
+    ports:
+      - "5432:5432"
+  server:
+    build: ./server
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@db:5432/issuesdb
+    depends_on:
+      - db
+  client:
+    build: ./client
+    ports:
+      - "3000:3000"

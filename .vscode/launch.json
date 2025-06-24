@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend: Node.js",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server/src/server.js",
+      "envFile": "${workspaceFolder}/server/.env",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}
