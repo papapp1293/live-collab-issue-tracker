@@ -1,6 +1,4 @@
 // server/src/models/issueModel.js
-// Defines the schema and database interaction for issue records.
-
 const db = require('../utils/db');
 
 const IssueModel = {
@@ -32,6 +30,26 @@ const IssueModel = {
       [status, id]
     );
     return result.rows[0];
+  },
+
+  // Update issue partially by ID (title, description, assigned_to, status)
+  updateIssue: async (id, data) => {
+    const keys = Object.keys(data);
+    const values = Object.values(data);
+
+    if (keys.length === 0) return null;
+
+    const setClause = keys.map((key, i) => `${key} = $${i + 2}`).join(', ');
+    const query = `UPDATE issues SET ${setClause} WHERE id = $1 RETURNING *`;
+
+    const result = await db.query(query, [id, ...values]);
+    return result.rows[0] || null;
+  },
+
+  // Delete issue by ID
+  deleteIssue: async (id) => {
+    const result = await db.query('DELETE FROM issues WHERE id = $1', [id]);
+    return result.rowCount > 0;
   },
 };
 
