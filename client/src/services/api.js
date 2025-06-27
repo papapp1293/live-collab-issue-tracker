@@ -18,3 +18,12 @@ export const fetchIssues = async () => {
   const res = await fetch(`${BASE_URL}/api/issues`);
   return res.json();
 };
+
+export const createIssue = async (issueData) => {
+  const res = await fetch(`${BASE_URL}/api/issues`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(issueData),
+  });
+  return res.json();
+};
