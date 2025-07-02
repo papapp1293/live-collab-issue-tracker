@@ -65,9 +65,8 @@ export default function CreateIssue() {
             className="w-full border p-2 rounded"
             value={assignedTo}
             onChange={(e) => setAssignedTo(e.target.value)}
-            required
           >
-            <option value="">Select a user</option>
+            <option value="">Not Assigned</option>
             {users.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.name} ({user.email})
