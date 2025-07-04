@@ -104,6 +104,12 @@ export default function IssueList() {
               <p><strong>Description:</strong> {issue.description}</p>
               <p><strong>Status:</strong> {issue.status}</p>
               <p><strong>Assigned To:</strong> {issue.assigned_to}</p>
+              <Link
+                to={`/issues/${issue.id}/edit`}
+                className="text-blue-600 hover:underline block mt-2"
+              >
+                Edit
+              </Link>
             </div>
           </li>
         ))}

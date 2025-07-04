@@ -39,10 +39,11 @@ const IssueModel = {
 
     if (keys.length === 0) return null;
 
-    const setClause = keys.map((key, i) => `${key} = $${i + 2}`).join(', ');
-    const query = `UPDATE issues SET ${setClause} WHERE id = $1 RETURNING *`;
+    const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
+    const query = `UPDATE issues SET ${setClause} WHERE id = $${keys.length + 1} RETURNING *`;
 
-    const result = await db.query(query, [id, ...values]);
+    const result = await db.query(query, [...values, id]);
+
     return result.rows[0] || null;
   },
 

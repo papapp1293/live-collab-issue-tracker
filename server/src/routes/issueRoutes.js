@@ -37,18 +37,18 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Update issue status or fields (partial update)
-router.patch('/:id/status', async (req, res) => {
+// Partial update (title, description, assigned_to, status)
+router.patch('/:id', async (req, res) => {
   try {
-    const { status } = req.body;
-    const updatedIssue = await IssueModel.updateIssueStatus(req.params.id, status);
-    if (!updatedIssue) return res.status(404).json({ error: 'Issue not found' });
-    res.json(updatedIssue);
+    const updated = await IssueModel.updateIssue(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Issue not found' });
+    res.json(updated);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to update issue status' });
+    res.status(500).json({ error: 'Failed to update issue' });
   }
 });
+
 
 // Delete issue
 router.delete('/:id', async (req, res) => {

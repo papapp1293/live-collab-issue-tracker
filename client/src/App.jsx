@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import UserList from './pages/UserList';
 import IssueList from './pages/IssueList';
 import CreateIssue from './pages/CreateIssue';
+import EditIssue from './pages/EditIssue';
 import './App.css';
 
 function App() {
@@ -17,7 +18,7 @@ function App() {
           <Route path="/users" element={<UserList />} />
           <Route path="/issues" element={<IssueList />} />
           <Route path="/issues/create" element={<CreateIssue />} />
-          <Route path="*" element={<div>Welcome! Choose a route.</div>} />
+          <Route path="/issues/:id/edit" element={<EditIssue />} />
         </Routes>
       </div>
     </Router>
