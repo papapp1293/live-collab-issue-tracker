@@ -1,14 +1,18 @@
-import { useState, useEffect } from 'react';
-import { createIssue, fetchUsers } from '../services/api';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fetchUsers, createIssue } from '../services/api';
 
 export default function CreateIssue() {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
+  const navigate = useNavigate();
+
+  const [issue, setIssue] = useState({
+    title: '',
+    description: '',
+    assigned_to: '',
+    status: 'open',
+  });
   const [users, setUsers] = useState([]);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchUsers()
@@ -16,13 +20,17 @@ export default function CreateIssue() {
       .catch(() => setError('Failed to load users'));
   }, []);
 
+  const handleChange = (e) => {
+    setIssue({ ...issue, [e.target.name]: e.target.value });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await createIssue({
-        title,
-        description,
-        assigned_to: parseInt(assignedTo),
+        title: issue.title,
+        description: issue.description,
+        assigned_to: issue.assigned_to ? parseInt(issue.assigned_to) : null,
       });
       navigate('/issues');
     } catch (err) {
@@ -31,54 +39,47 @@ export default function CreateIssue() {
     }
   };
 
+  if (error) return <p className="alert error">{error}</p>;
+
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Create New Issue</h2>
+    <div className="container" style={{ maxWidth: '600px' }}>
+      <h2 className="title mb-3">Create New Issue</h2>
+      <form onSubmit={handleSubmit} className="form stacked">
+        <label htmlFor="title">Title</label>
+        <input
+          id="title"
+          name="title"
+          type="text"
+          value={issue.title}
+          onChange={handleChange}
+          required
+        />
 
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+        <label htmlFor="description">Description</label>
+        <textarea
+          id="description"
+          name="description"
+          value={issue.description}
+          onChange={handleChange}
+          required
+        />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block font-semibold">Title</label>
-          <input
-            type="text"
-            className="w-full border p-2 rounded"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block font-semibold">Description</label>
-          <textarea
-            className="w-full border p-2 rounded"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block font-semibold">Assign To</label>
-          <select
-            className="w-full border p-2 rounded"
-            value={assignedTo}
-            onChange={(e) => setAssignedTo(e.target.value)}
-          >
-            <option value="">Not Assigned</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name} ({user.email})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        <label htmlFor="assigned_to">Assign To</label>
+        <select
+          id="assigned_to"
+          name="assigned_to"
+          value={issue.assigned_to}
+          onChange={handleChange}
         >
+          <option value="">Not Assigned</option>
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.name} ({user.email})
+            </option>
+          ))}
+        </select>
+
+        <button type="submit" className="button primary mt-3">
           Create Issue
         </button>
       </form>

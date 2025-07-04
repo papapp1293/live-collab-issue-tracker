@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchIssues, deleteIssue } from '../services/api';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function IssueList() {
   const [issues, setIssues] = useState([]);
@@ -9,10 +9,18 @@ export default function IssueList() {
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIssues, setSelectedIssues] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchIssues()
+      .then(setIssues)
+      .catch(() => setError('Failed to fetch issues'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const toggleDeleteMode = () => {
     setDeleteMode(!deleteMode);
-    setSelectedIssues([]); // clear selection when entering/exiting
+    setSelectedIssues([]);
   };
 
   const handleCheckboxChange = (issueId) => {
@@ -25,127 +33,116 @@ export default function IssueList() {
 
   const deleteSelectedIssues = async () => {
     try {
-      const deletePromises = selectedIssues.map((id) =>
-        deleteIssue(id)
-      );
-
+      const deletePromises = selectedIssues.map((id) => deleteIssue(id));
       await Promise.all(deletePromises);
-
-      // Refresh UI
-      const updatedIssues = issues.filter((issue) => !selectedIssues.includes(issue.id));
-      setIssues(updatedIssues);
+      setIssues(issues.filter((issue) => !selectedIssues.includes(issue.id)));
       setSelectedIssues([]);
       setDeleteMode(false);
       setConfirmDelete(false);
     } catch (err) {
-      console.error('Failed to delete issues:', err);
-      alert('Failed to delete selected issues.');
+      console.error('Delete error:', err);
+      alert('Failed to delete issues.');
     }
   };
 
-  useEffect(() => {
-    fetchIssues()
-      .then(setIssues)
-      .catch((err) => {
-        console.error(err);
-        setError('Failed to fetch issues');
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <p>Loading issues...</p>;
-  if (error) return <p>{error}</p>;
+  if (loading)
+    return (
+      <p className="p">Loading issues...</p>
+    );
+  if (error)
+    return (
+      <p className="alert error">{error}</p>
+    );
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">All Issues</h2>
-      <Link to="/issues/create" className="text-blue-600 underline">
-        + New Issue
-      </Link>
-      <div className="mt-4 space-x-2">
-        {!deleteMode ? (
-          <button
-            className="bg-red-500 text-white px-3 py-1 rounded"
-            onClick={toggleDeleteMode}
-          >
-            Delete
-          </button>
-        ) : (
-          <>
-            <button
-              className="bg-gray-300 text-black px-3 py-1 rounded"
-              onClick={toggleDeleteMode}
-            >
-              Cancel
-            </button>
-            <button
-              className="bg-red-600 text-white px-3 py-1 rounded"
-              onClick={() => setConfirmDelete(true)}
-              disabled={selectedIssues.length === 0}
-            >
-              Delete ({selectedIssues.length})
-            </button>
-          </>
-        )}
+    <div className="container">
+      <div className="flex space-between middle mb-3">
+        <h2 className="title">All Issues</h2>
+        <Link to="/issues/create" className="button primary small">
+          + New Issue
+        </Link>
       </div>
-      <ul className="space-y-2">
-        {issues.map((issue) => (
-          <li key={issue.id} className="border p-4 rounded shadow flex items-start">
-            {deleteMode && (
-              <input
-                type="checkbox"
-                className="mr-4 mt-1"
-                checked={selectedIssues.includes(issue.id)}
-                onChange={() => handleCheckboxChange(issue.id)}
-              />
-            )}
-            <div>
-              <p><strong>Title:</strong> {issue.title}</p>
-              <p><strong>Description:</strong> {issue.description}</p>
-              <p><strong>Status:</strong> {issue.status}</p>
-              <p><strong>Assigned To:</strong> {issue.assigned_to}</p>
-              <Link
-                to={`/issues/${issue.id}/edit`}
-                className="text-blue-600 hover:underline block mt-2"
-              >
-                Edit
-              </Link>
-            </div>
-          </li>
-        ))}
-      </ul>
 
-      {
-        confirmDelete && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-              <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
-              <p className="mb-4">Are you sure you want to delete the following issues?</p>
-              <ul className="list-disc ml-5 mb-4">
-                {issues
-                  .filter((issue) => selectedIssues.includes(issue.id))
-                  .map((issue) => (
-                    <li key={issue.id}>{issue.title}</li>
-                  ))}
-              </ul>
-              <div className="flex justify-end space-x-2">
-                <button
-                  className="bg-gray-300 px-4 py-2 rounded"
-                  onClick={() => setConfirmDelete(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="bg-red-600 text-white px-4 py-2 rounded"
-                  onClick={deleteSelectedIssues}
-                >
-                  Confirm
-                </button>
+      {deleteMode ? (
+        <div className="flex gap">
+          <button className="button secondary small" onClick={toggleDeleteMode}>
+            Cancel
+          </button>
+          <button
+            disabled={selectedIssues.length === 0}
+            onClick={() => setConfirmDelete(true)}
+            className={`button danger small${selectedIssues.length === 0 ? ' disabled' : ''}`}
+          >
+            Delete ({selectedIssues.length})
+          </button>
+        </div>
+      ) : (
+        <button className="button danger small mb-3" onClick={toggleDeleteMode}>
+          Delete
+        </button>
+      )}
+
+      {issues.length === 0 ? (
+        <p className="text-muted mt-3">🚫 No issues found. Create one above.</p>
+      ) : (
+        <ul>
+          {issues.map((issue) => (
+            <li
+              key={issue.id}
+              className="card card-hover flex middle gap"
+              style={{ cursor: deleteMode ? 'default' : 'pointer' }}
+              onClick={() => !deleteMode && navigate(`/issues/${issue.id}`)}
+            >
+              {deleteMode && (
+                <input
+                  type="checkbox"
+                  checked={selectedIssues.includes(issue.id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    handleCheckboxChange(issue.id);
+                  }}
+                />
+              )}
+              <div className="flex-grow">
+                <h3>{issue.title}</h3>
+                <p className="text-muted">{issue.description}</p>
+                <div className="flex gap wrap mt-1">
+                  <span className="badge primary" style={{ textTransform: 'capitalize' }}>
+                    {issue.status.replace('_', ' ')}
+                  </span>
+                  <span className="badge secondary">
+                    {issue.assigned_to ? `Assigned to ${issue.assigned_to}` : 'Unassigned'}
+                  </span>
+                </div>
               </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {confirmDelete && (
+        <div className="modal">
+          <div className="card p">
+            <h3>Confirm Delete</h3>
+            <p>Are you sure you want to delete the following issues?</p>
+            <ul className="list">
+              {issues
+                .filter((issue) => selectedIssues.includes(issue.id))
+                .map((issue) => (
+                  <li key={issue.id}>{issue.title}</li>
+                ))}
+            </ul>
+            <div className="flex gap right mt-3">
+              <button className="button secondary" onClick={() => setConfirmDelete(false)}>
+                Cancel
+              </button>
+              <button className="button danger" onClick={deleteSelectedIssues}>
+                Confirm
+              </button>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
     </div>
   );
 }

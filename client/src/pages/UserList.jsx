@@ -16,15 +16,15 @@ export default function UserList() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p>Loading users...</p>;
-  if (error) return <p>{error}</p>;
+  if (loading) return <p className="p">Loading users...</p>;
+  if (error) return <p className="alert error">{error}</p>;
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">All Users</h2>
-      <ul className="space-y-2">
+    <div className="container">
+      <h2 className="title mb-3">All Users</h2>
+      <ul>
         {users.map((user) => (
-          <li key={user.id} className="border p-4 rounded shadow">
+          <li key={user.id} className="card p">
             <p><strong>Name:</strong> {user.name}</p>
             <p><strong>Email:</strong> {user.email}</p>
             <p><strong>Role:</strong> {user.role}</p>

@@ -3,7 +3,7 @@ import UserList from './pages/UserList';
 import IssueList from './pages/IssueList';
 import CreateIssue from './pages/CreateIssue';
 import EditIssue from './pages/EditIssue';
-import './App.css';
+import IssueDetail from './pages/IssueDetail';
 
 function App() {
   return (
@@ -19,6 +19,7 @@ function App() {
           <Route path="/issues" element={<IssueList />} />
           <Route path="/issues/create" element={<CreateIssue />} />
           <Route path="/issues/:id/edit" element={<EditIssue />} />
+          <Route path="/issues/:id" element={<IssueDetail />} />
         </Routes>
       </div>
     </Router>

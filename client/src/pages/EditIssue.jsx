@@ -26,12 +26,6 @@ export default function EditIssue() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log("Submitting updated issue:", {
-            title: issue.title,
-            description: issue.description,
-            assigned_to: parseInt(issue.assigned_to) || null,
-            status: issue.status,
-        });
         try {
             await updateIssue(id, {
                 title: issue.title,
@@ -39,72 +33,68 @@ export default function EditIssue() {
                 assigned_to: parseInt(issue.assigned_to) || null,
                 status: issue.status,
             });
-            navigate('/issues');
+            navigate(`/issues/${id}`);
         } catch (err) {
             console.error(err);
             setError('Failed to update issue');
         }
     };
 
-    if (error) return <p className="text-red-500 p-4">{error}</p>;
-    if (!issue) return <p className="p-4">Loading...</p>;
+    if (error) return <p className="alert error">{error}</p>;
+    if (!issue) return <p className="p">Loading...</p>;
 
     return (
-        <div className="p-6 max-w-xl mx-auto">
-            <h2 className="text-2xl font-bold mb-4">Edit Issue</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label className="block font-semibold">Title</label>
-                    <input
-                        type="text"
-                        name="title"
-                        className="w-full border p-2 rounded"
-                        value={issue.title}
-                        onChange={handleChange}
-                    />
-                </div>
-                <div>
-                    <label className="block font-semibold">Description</label>
-                    <textarea
-                        name="description"
-                        className="w-full border p-2 rounded"
-                        value={issue.description}
-                        onChange={handleChange}
-                    />
-                </div>
-                <div>
-                    <label className="block font-semibold">Status</label>
-                    <select
-                        name="status"
-                        className="w-full border p-2 rounded"
-                        value={issue.status}
-                        onChange={handleChange}
-                    >
-                        <option value="open">Open</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="closed">Closed</option>
-                    </select>
-                </div>
-                <div>
-                    <label className="block font-semibold">Assign To</label>
-                    <select
-                        name="assigned_to"
-                        className="w-full border p-2 rounded"
-                        value={issue.assigned_to || ''}
-                        onChange={handleChange}
-                    >
-                        <option value="">Not Assigned</option>
-                        {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                                {user.name} ({user.email})
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <button
-                    type="submit"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        <div className="container" style={{ maxWidth: '600px' }}>
+            <h2 className="title mb-3">Edit Issue</h2>
+            <form onSubmit={handleSubmit} className="form stacked">
+                <label htmlFor="title">Title</label>
+                <input
+                    id="title"
+                    name="title"
+                    type="text"
+                    value={issue.title}
+                    onChange={handleChange}
+                    required
+                />
+
+                <label htmlFor="description">Description</label>
+                <textarea
+                    id="description"
+                    name="description"
+                    value={issue.description}
+                    onChange={handleChange}
+                    required
+                />
+
+                <label htmlFor="status">Status</label>
+                <select
+                    id="status"
+                    name="status"
+                    value={issue.status}
+                    onChange={handleChange}
+                    required
                 >
+                    <option value="open">Open</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="closed">Closed</option>
+                </select>
+
+                <label htmlFor="assigned_to">Assign To</label>
+                <select
+                    id="assigned_to"
+                    name="assigned_to"
+                    value={issue.assigned_to || ''}
+                    onChange={handleChange}
+                >
+                    <option value="">Not Assigned</option>
+                    {users.map((user) => (
+                        <option key={user.id} value={user.id}>
+                            {user.name} ({user.email})
+                        </option>
+                    ))}
+                </select>
+
+                <button type="submit" className="button primary mt-3">
                     Update Issue
                 </button>
             </form>
