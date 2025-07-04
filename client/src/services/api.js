@@ -27,3 +27,24 @@ export const createIssue = async (issueData) => {
   });
   return res.json();
 };
+
+export const updateIssue = async (id, updatedData) => {
+  const res = await fetch(`${BASE_URL}/api/issues/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updatedData),
+  });
+  return res.json();
+};
+
+export const deleteIssue = async (id) => {
+  const res = await fetch(`${BASE_URL}/api/issues/${id}`, {
+    method: 'DELETE',
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to delete issue');
+  }
+
+  return res.json();
+};
