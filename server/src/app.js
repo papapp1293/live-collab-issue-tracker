@@ -8,8 +8,8 @@ const morgan = require('morgan');
 
 const userRoutes = require('./routes/userRoutes');
 const issueRoutes = require('./routes/issueRoutes');
-// Test Routes
-const testRoutes = require('./routes/testRoutes');
+const authRoutes = require('./routes/authRoutes');
+const authenticateToken = require('./middleware/authMiddleware');
 
 dotenv.config();
 
@@ -20,9 +20,13 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('dev'));
 
-// Routes
-app.use('/api/users', userRoutes);
-app.use('/api/issues', issueRoutes);
+
+// Public Routes
+app.use('/api/auth', authRoutes);
+// Private Routes
+app.use('/api/users', authenticateToken, userRoutes);
+app.use('/api/issues', authenticateToken, issueRoutes);
+
 // Default error handling
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found' });

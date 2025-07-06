@@ -1,8 +1,21 @@
+// server/src/routes/authRoutes.js
+const express = require('express');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const db = require('../utils/db');
-const { generateToken, verifyToken } = require('../utils/jwt');  // import from your jwt.js
+const router = express.Router();
 
-const register = async (req, res) => {
+const JWT_SECRET = process.env.JWT_SECRET;
+
+// Helper to generate token
+const generateToken = (user) => {
+    return jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+        expiresIn: '7d',
+    });
+};
+
+// Register
+router.post('/register', async (req, res) => {
     const { name, email, password } = req.body;
     try {
         const existing = await db.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -17,15 +30,16 @@ const register = async (req, res) => {
         );
 
         const user = result.rows[0];
-        const token = generateToken({ id: user.id, email: user.email });  // use jwt.js generateToken
+        const token = generateToken(user);
         res.json({ user, token });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Registration failed' });
     }
-};
+});
 
-const login = async (req, res) => {
+// Login
+router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     try {
         const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -36,15 +50,12 @@ const login = async (req, res) => {
         }
 
         const { password: _, ...userSafe } = user;
-        const token = generateToken({ id: userSafe.id, email: userSafe.email });  // use jwt.js generateToken
+        const token = generateToken(userSafe);
         res.json({ user: userSafe, token });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Login failed' });
     }
-};
+});
 
-module.exports = {
-    register,
-    login,
-};
+module.exports = router;
