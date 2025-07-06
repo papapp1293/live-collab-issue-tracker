@@ -4,6 +4,7 @@ import IssueList from './pages/IssueList';
 import CreateIssue from './pages/CreateIssue';
 import EditIssue from './pages/EditIssue';
 import IssueDetail from './pages/IssueDetail';
+import './App.css';
 
 function App() {
   return (
