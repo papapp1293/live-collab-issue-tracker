@@ -3,6 +3,7 @@ const request = require('supertest');
 const app = require('../src/app');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
+const db = require('../src/utils/db');
 
 dotenv.config();
 
@@ -41,5 +42,13 @@ describe('Auth Middleware & Routes', () => {
 
         // Expect 200 or 500 if DB isn't seeded, but not 401
         expect([200, 500]).toContain(res.statusCode);
+    });
+
+    afterAll(async () => {
+        const result = await db.query(
+            `DELETE FROM users WHERE email LIKE 'user%@example.com'`
+        );
+        console.log(`Deleted ${result.rowCount} test users`);
+        await db.pool.end();
     });
 });
