@@ -13,8 +13,18 @@ export default function IssueList() {
 
   useEffect(() => {
     fetchIssues()
-      .then(setIssues)
-      .catch(() => setError('Failed to fetch issues'))
+      .then(data => {
+        if (Array.isArray(data)) {
+          setIssues(data);
+        } else {
+          setIssues([]);
+          setError('Invalid data received from server');
+        }
+      })
+      .catch((err) => {
+        setIssues([]);
+        setError(err.message || 'Failed to fetch issues');
+      })
       .finally(() => setLoading(false));
   }, []);
 

@@ -2,18 +2,18 @@
 const { Pool, Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
-
 require('dotenv').config();
+
+const seedUsers = require('./seedUsers');
 
 const DB_NAME = 'live_collab_db';
 const SCHEMA_FILE = path.join(__dirname, '../../db/schema.sql');
-const SEED_FILE = path.join(__dirname, '../../db/seed.sql');
 
 async function setupDatabase() {
   // Connect to default "postgres" DB to manage DB creation
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
-    });
+  });
   try {
     await client.connect();
 
@@ -35,15 +35,14 @@ async function setupDatabase() {
     });
 
     const schemaSql = fs.readFileSync(SCHEMA_FILE, 'utf8');
-    const seedSql = fs.readFileSync(SEED_FILE, 'utf8');
 
     console.log('Running schema.sql...');
     await pool.query(schemaSql);
     console.log('schema.sql executed.');
 
-    console.log('Running seed.sql...');
-    await pool.query(seedSql);
-    console.log('seed.sql executed.');
+    console.log('Seeding users with hashed passwords...');
+    await seedUsers();
+    console.log('User seed complete.');
 
     await pool.end();
 
