@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchIssues, deleteIssue } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
+import socketService from '../services/socket';
 
 export default function IssueList() {
   const [issues, setIssues] = useState([]);
@@ -9,6 +10,8 @@ export default function IssueList() {
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIssues, setSelectedIssues] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [typingUsers, setTypingUsers] = useState(new Map()); // issueId -> Set of users
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,6 +29,74 @@ export default function IssueList() {
         setError(err.message || 'Failed to fetch issues');
       })
       .finally(() => setLoading(false));
+
+    // Set up Socket.IO listeners for real-time updates
+    socketService.onIssueCreated((newIssue) => {
+      console.log('📝 Real-time: New issue created', newIssue);
+      setIssues(prevIssues => [newIssue, ...prevIssues]);
+    });
+
+    socketService.onIssueUpdated((updatedIssue) => {
+      console.log('📝 Real-time: Issue updated', updatedIssue);
+      setIssues(prevIssues =>
+        prevIssues.map(issue =>
+          issue.id === updatedIssue.id ? { ...issue, ...updatedIssue } : issue
+        )
+      );
+    });
+
+    socketService.onIssueDeleted((deletedIssue) => {
+      console.log('🗑️ Real-time: Issue deleted', deletedIssue);
+      setIssues(prevIssues =>
+        prevIssues.filter(issue => issue.id !== deletedIssue.id)
+      );
+    });
+
+    socketService.onUserOnline((user) => {
+      console.log('✅ User came online:', user.userEmail);
+      setOnlineUsers(prev => new Set([...prev, user.userId]));
+    });
+
+    socketService.onUserOffline((user) => {
+      console.log('❌ User went offline:', user.userEmail);
+      setOnlineUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(user.userId);
+        return newSet;
+      });
+    });
+
+    socketService.onUserTyping(({ issueId, userId, userEmail, isTyping }) => {
+      setTypingUsers(prev => {
+        const newMap = new Map(prev);
+        if (!newMap.has(issueId)) {
+          newMap.set(issueId, new Set());
+        }
+        const usersTyping = newMap.get(issueId);
+
+        if (isTyping) {
+          usersTyping.add(userEmail);
+        } else {
+          usersTyping.delete(userEmail);
+        }
+
+        if (usersTyping.size === 0) {
+          newMap.delete(issueId);
+        }
+
+        return newMap;
+      });
+    });
+
+    // Cleanup listeners on unmount
+    return () => {
+      socketService.removeListener('issue:created');
+      socketService.removeListener('issue:updated');
+      socketService.removeListener('issue:deleted');
+      socketService.removeListener('user:online');
+      socketService.removeListener('user:offline');
+      socketService.removeListener('issue:typing');
+    };
   }, []);
 
   const toggleDeleteMode = () => {
@@ -67,7 +138,17 @@ export default function IssueList() {
   return (
     <div className="container">
       <div className="flex space-between middle mb-3">
-        <h2 className="title">All Issues</h2>
+        <div className="flex middle gap">
+          <h2 className="title">All Issues</h2>
+          <span className="badge success small">
+            🟢 Live Updates
+          </span>
+          {onlineUsers.size > 0 && (
+            <span className="badge secondary small">
+              {onlineUsers.size} user{onlineUsers.size !== 1 ? 's' : ''} online
+            </span>
+          )}
+        </div>
         <div className="flex gap">
           <Link to="/" className="button secondary small">
             🏠 Home
@@ -119,7 +200,14 @@ export default function IssueList() {
                 />
               )}
               <div className="flex-grow">
-                <h3>{issue.title}</h3>
+                <div className="flex middle gap">
+                  <h3>{issue.title}</h3>
+                  {typingUsers.has(issue.id) && (
+                    <span className="badge warning small animate-pulse">
+                      ✏️ {Array.from(typingUsers.get(issue.id)).join(', ')} editing...
+                    </span>
+                  )}
+                </div>
                 <p className="text-muted">{issue.description}</p>
                 <div className="flex gap wrap mt-1">
                   <span className="badge primary" style={{ textTransform: 'capitalize' }}>

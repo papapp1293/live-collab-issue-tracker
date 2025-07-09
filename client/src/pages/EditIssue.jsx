@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchUsers, fetchIssues, updateIssue } from '../services/api';
+import socketService from '../services/socket';
 
 export default function EditIssue() {
     const { id } = useParams();
@@ -27,12 +28,16 @@ export default function EditIssue() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await updateIssue(id, {
+            const updatedIssue = await updateIssue(id, {
                 title: issue.title,
                 description: issue.description,
                 assigned_to: parseInt(issue.assigned_to) || null,
                 status: issue.status,
             });
+
+            // Emit Socket event for real-time updates
+            socketService.emitIssueUpdated({ ...updatedIssue, id: parseInt(id) });
+
             navigate(`/issues/${id}`);
         } catch (err) {
             console.error(err);

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchMyIssues } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import socketService from '../services/socket';
 
 export default function Dashboard() {
     const [myIssues, setMyIssues] = useState([]);
@@ -25,7 +26,54 @@ export default function Dashboard() {
                 setError(err.message || 'Failed to fetch your issues');
             })
             .finally(() => setLoading(false));
-    }, []);
+
+        // Set up Socket.IO listeners for real-time updates to user's issues
+        socketService.onIssueCreated((newIssue) => {
+            // Only add if the issue is assigned to current user
+            if (newIssue.assigned_to === user?.id) {
+                setMyIssues(prevIssues => [newIssue, ...prevIssues]);
+            }
+        });
+
+        socketService.onIssueUpdated((updatedIssue) => {
+            setMyIssues(prevIssues => {
+                const existingIndex = prevIssues.findIndex(issue => issue.id === updatedIssue.id);
+
+                // If issue was already in Alice's list (assigned to her)
+                if (existingIndex !== -1) {
+                    // If it's still assigned to Alice, update it
+                    if (updatedIssue.assigned_to === user?.id) {
+                        return prevIssues.map(issue =>
+                            issue.id === updatedIssue.id ? { ...issue, ...updatedIssue } : issue
+                        );
+                    } else {
+                        // If it's no longer assigned to Alice, remove it
+                        return prevIssues.filter(issue => issue.id !== updatedIssue.id);
+                    }
+                } else {
+                    // If issue wasn't in Alice's list but is now assigned to her, add it
+                    if (updatedIssue.assigned_to === user?.id) {
+                        return [updatedIssue, ...prevIssues];
+                    }
+                    // Otherwise, ignore the update (not relevant to Alice)
+                    return prevIssues;
+                }
+            });
+        });
+
+        socketService.onIssueDeleted((deletedIssue) => {
+            setMyIssues(prevIssues =>
+                prevIssues.filter(issue => issue.id !== deletedIssue.id)
+            );
+        });
+
+        // Cleanup listeners on unmount
+        return () => {
+            socketService.removeListener('issue:created');
+            socketService.removeListener('issue:updated');
+            socketService.removeListener('issue:deleted');
+        };
+    }, [user?.id]);
 
     if (loading) return <p className="p">Loading your dashboard...</p>;
 

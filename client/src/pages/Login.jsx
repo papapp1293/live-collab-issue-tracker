@@ -21,7 +21,7 @@ export default function Login() {
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
             authLogin(user); // Set the user in AuthContext
-            navigate('/issues'); // or home page
+            navigate('/'); // Navigate to Dashboard
         } catch (err) {
             setError(err.message || 'Login failed');
         }
