@@ -24,11 +24,6 @@ function AppLayout() {
   return (
     <div className="p-6">
       <nav className="mb-6 flex justify-between items-center">
-        <div className="space-x-4">
-          <Link to="/" className="text-blue-600 hover:underline">Dashboard</Link>
-          <Link to="/users" className="text-blue-600 hover:underline">Users</Link>
-          <Link to="/issues" className="text-blue-600 hover:underline">Issues</Link>
-        </div>
         <div className="flex items-center gap-4">
           <span>{user?.name || user?.email}</span>
           <button
