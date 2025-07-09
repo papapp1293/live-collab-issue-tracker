@@ -213,12 +213,13 @@ export default function IssueList() {
                     </span>
                   )}
                 </div>
-                <p className="text-muted">{issue.description}</p>
 
-                {issue.ai_summary && (
+                {issue.ai_summary ? (
                   <div className="alert success mt-2 mb-2" style={{ padding: '8px 12px' }}>
                     <strong>🤖 AI Summary:</strong> {issue.ai_summary}
                   </div>
+                ) : (
+                  <p className="text-muted">{issue.description}</p>
                 )}
 
                 <div className="flex gap wrap mt-1">
