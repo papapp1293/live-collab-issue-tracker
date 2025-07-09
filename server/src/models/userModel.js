@@ -25,7 +25,25 @@ const UserModel = {
 
   // Get all users
   getAllUsers: async () => {
-    const result = await db.query('SELECT * FROM users');
+    const result = await db.query('SELECT * FROM users ORDER BY name');
+    return result.rows;
+  },
+
+  // Get users by role
+  getUsersByRole: async (role) => {
+    const result = await db.query('SELECT * FROM users WHERE role = $1 ORDER BY name', [role]);
+    return result.rows;
+  },
+
+  // Get developers
+  getDevelopers: async () => {
+    const result = await db.query('SELECT * FROM users WHERE role = $1 ORDER BY name', ['developer']);
+    return result.rows;
+  },
+
+  // Get testers
+  getTesters: async () => {
+    const result = await db.query('SELECT * FROM users WHERE role = $1 ORDER BY name', ['tester']);
     return result.rows;
   },
 

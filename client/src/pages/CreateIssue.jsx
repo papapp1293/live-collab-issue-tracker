@@ -1,27 +1,51 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { fetchUsers, createIssue } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
 
 export default function CreateIssue() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [issue, setIssue] = useState({
     title: '',
     description: '',
-    assigned_to: '',
+    assigned_developer: '',
+    assigned_tester: '',
     status: 'open',
   });
-  const [users, setUsers] = useState([]);
+  const [developers, setDevelopers] = useState([]);
+  const [testers, setTesters] = useState([]);
   const [error, setError] = useState(null);
   const [createdIssue, setCreatedIssue] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
-    fetchUsers()
-      .then(setUsers)
-      .catch(() => setError('Failed to load users'));
-  }, []);
+    // Only managers can assign during creation, others create unassigned issues
+    if (user?.role === 'manager') {
+      fetchUsersByRole('developer').then(setDevelopers).catch(() => setError('Failed to load developers'));
+      fetchUsersByRole('tester').then(setTesters).catch(() => setError('Failed to load testers'));
+    }
+  }, [user]);
+
+  const fetchUsersByRole = async (role) => {
+    try {
+      const response = await fetch(`/api/issues/users/${role}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        return await response.json();
+      }
+      return [];
+    } catch (err) {
+      console.error(`Error fetching ${role}s:`, err);
+      return [];
+    }
+  };
 
   const handleChange = (e) => {
     setIssue({ ...issue, [e.target.name]: e.target.value });
@@ -33,7 +57,8 @@ export default function CreateIssue() {
       const newIssue = await createIssue({
         title: issue.title,
         description: issue.description,
-        assigned_to: issue.assigned_to ? parseInt(issue.assigned_to) : null,
+        assigned_developer: issue.assigned_developer ? parseInt(issue.assigned_developer) : null,
+        assigned_tester: issue.assigned_tester ? parseInt(issue.assigned_tester) : null,
       });
 
       // Show success message with AI summary if available
@@ -128,20 +153,46 @@ export default function CreateIssue() {
           required
         />
 
-        <label htmlFor="assigned_to">Assign To</label>
-        <select
-          id="assigned_to"
-          name="assigned_to"
-          value={issue.assigned_to}
-          onChange={handleChange}
-        >
-          <option value="">Not Assigned</option>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.name} ({user.email})
-            </option>
-          ))}
-        </select>
+        {user?.role === 'manager' && (
+          <>
+            <label htmlFor="assigned_developer">Assign Developer</label>
+            <select
+              id="assigned_developer"
+              name="assigned_developer"
+              value={issue.assigned_developer}
+              onChange={handleChange}
+            >
+              <option value="">No Developer Assigned</option>
+              {developers.map((dev) => (
+                <option key={dev.id} value={dev.id}>
+                  {dev.name} ({dev.email})
+                </option>
+              ))}
+            </select>
+
+            <label htmlFor="assigned_tester">Assign Tester</label>
+            <select
+              id="assigned_tester"
+              name="assigned_tester"
+              value={issue.assigned_tester}
+              onChange={handleChange}
+            >
+              <option value="">No Tester Assigned</option>
+              {testers.map((tester) => (
+                <option key={tester.id} value={tester.id}>
+                  {tester.name} ({tester.email})
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+
+        {user?.role !== 'manager' && (
+          <div className="alert info">
+            <strong>ℹ️ Assignment:</strong>
+            <p className="mt-1 mb-0">Issue will be created unassigned. Managers can assign developers and testers later.</p>
+          </div>
+        )}
 
         <button type="submit" className="button primary mt-3">
           Create Issue

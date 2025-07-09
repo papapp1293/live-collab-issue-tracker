@@ -20,6 +20,7 @@ CREATE TABLE issues (
     description TEXT NOT NULL,
     ai_summary TEXT,
     status VARCHAR(50) DEFAULT 'open' NOT NULL,
-    assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    assigned_developer INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    assigned_tester INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

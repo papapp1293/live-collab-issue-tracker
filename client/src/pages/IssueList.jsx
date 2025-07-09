@@ -228,9 +228,21 @@ export default function IssueList() {
                   </span>
                 </div>
                 <div className="flex gap wrap mt-1">
-                  <span className="badge secondary">
-                    {issue.assigned_to_name ? `Assigned to ${issue.assigned_to_name}` : 'Unassigned'}
-                  </span>
+                  {issue.assigned_developer_name && (
+                    <span className="badge secondary">
+                      Developer: {issue.assigned_developer_name}
+                    </span>
+                  )}
+                  {issue.assigned_tester_name && (
+                    <span className="badge secondary">
+                      Tester: {issue.assigned_tester_name}
+                    </span>
+                  )}
+                  {!issue.assigned_developer_name && !issue.assigned_tester_name && (
+                    <span className="badge danger">
+                      Unassigned
+                    </span>
+                  )}
                 </div>
               </div>
             </li>

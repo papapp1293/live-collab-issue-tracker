@@ -2,13 +2,20 @@ import { useEffect, useState } from 'react';
 import { fetchMyIssues } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import ManagerDashboard from './ManagerDashboard';
 import socketService from '../services/socket';
 
 export default function Dashboard() {
+    const { user } = useAuth();
+
+    // Route managers to their specialized dashboard
+    if (user?.role === 'manager') {
+        return <ManagerDashboard />;
+    }
+
     const [myIssues, setMyIssues] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const { user } = useAuth();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -129,8 +136,18 @@ export default function Dashboard() {
                                             {issue.status.replace('_', ' ')}
                                         </span>
                                         <span className="badge success">
-                                            Assigned to me
+                                            Assigned to me as {user?.role}
                                         </span>
+                                        {issue.assigned_developer_name && user?.role !== 'developer' && (
+                                            <span className="badge secondary">
+                                                Dev: {issue.assigned_developer_name}
+                                            </span>
+                                        )}
+                                        {issue.assigned_tester_name && user?.role !== 'tester' && (
+                                            <span className="badge secondary">
+                                                Test: {issue.assigned_tester_name}
+                                            </span>
+                                        )}
                                         <span className="badge secondary text-sm">
                                             Created: {new Date(issue.created_at).toLocaleDateString()}
                                         </span>

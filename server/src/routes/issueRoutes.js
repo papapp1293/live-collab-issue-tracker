@@ -1,7 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const IssueModel = require('../models/issueModel');
+const UserModel = require('../models/userModel');
 const openaiService = require('../services/openaiService');
+
+// Get issues based on user role
+router.get('/', async (req, res) => {
+  try {
+    const userRole = req.user?.role;
+    let issues;
+
+    if (userRole === 'manager') {
+      // Managers see all issues with assignment status
+      issues = await IssueModel.getIssuesForManager();
+    } else {
+      // Developers and testers see all issues
+      issues = await IssueModel.getAllIssues();
+    }
+
+    res.json(issues);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch issues' });
+  }
+});
 
 // Get issues assigned to the current user
 router.get('/my-issues', async (req, res) => {
@@ -23,7 +45,7 @@ router.get('/my-issues', async (req, res) => {
 // Create a new issue
 router.post('/', async (req, res) => {
   try {
-    const { title, description, assigned_to } = req.body;
+    const { title, description, assigned_developer, assigned_tester } = req.body;
 
     // Generate AI summary if OpenAI is configured
     let aiSummary = null;
@@ -41,7 +63,8 @@ router.post('/', async (req, res) => {
     const issue = await IssueModel.createIssue({
       title,
       description,
-      assigned_to,
+      assigned_developer,
+      assigned_tester,
       ai_summary: aiSummary
     });
 
@@ -154,6 +177,74 @@ router.post('/:id/generate-summary', async (req, res) => {
   } catch (err) {
     console.error('Error in generate-summary route:', err);
     res.status(500).json({ error: 'Failed to generate AI summary: ' + err.message });
+  }
+});
+
+// Manager routes for assignment
+// Get all users by role for assignment dropdowns
+router.get('/users/:role', async (req, res) => {
+  try {
+    // Only managers can access this
+    if (req.user?.role !== 'manager') {
+      return res.status(403).json({ error: 'Only managers can access user lists' });
+    }
+
+    const { role } = req.params;
+    if (!['developer', 'tester'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role. Must be developer or tester' });
+    }
+
+    const users = await UserModel.getUsersByRole(role);
+    res.json(users);
+  } catch (err) {
+    console.error('Error fetching users by role:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Assign developer to issue
+router.post('/:id/assign-developer', async (req, res) => {
+  try {
+    // Only managers can assign
+    if (req.user?.role !== 'manager') {
+      return res.status(403).json({ error: 'Only managers can assign developers' });
+    }
+
+    const { developerId } = req.body;
+    const issueId = req.params.id;
+
+    const updatedIssue = await IssueModel.assignDeveloper(issueId, developerId);
+    if (!updatedIssue) {
+      return res.status(404).json({ error: 'Issue not found' });
+    }
+
+    res.json({ message: 'Developer assigned successfully', issue: updatedIssue });
+  } catch (err) {
+    console.error('Error assigning developer:', err);
+    res.status(500).json({ error: 'Failed to assign developer' });
+  }
+});
+
+// Assign tester to issue
+router.post('/:id/assign-tester', async (req, res) => {
+  try {
+    // Only managers can assign
+    if (req.user?.role !== 'manager') {
+      return res.status(403).json({ error: 'Only managers can assign testers' });
+    }
+
+    const { testerId } = req.body;
+    const issueId = req.params.id;
+
+    const updatedIssue = await IssueModel.assignTester(issueId, testerId);
+    if (!updatedIssue) {
+      return res.status(404).json({ error: 'Issue not found' });
+    }
+
+    res.json({ message: 'Tester assigned successfully', issue: updatedIssue });
+  } catch (err) {
+    console.error('Error assigning tester:', err);
+    res.status(500).json({ error: 'Failed to assign tester' });
   }
 });
 

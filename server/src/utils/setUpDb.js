@@ -40,6 +40,10 @@ async function setupDatabase() {
     console.log('Checking ai_summary column...');
     await ensureAISummaryColumn(pool);
 
+    // Migrate to RBAC columns
+    console.log('Checking RBAC columns...');
+    await migrateToRBACColumns(pool);
+
     await pool.end();
 
     console.log('Database setup complete.');
@@ -67,6 +71,57 @@ async function ensureAISummaryColumn(pool) {
     }
   } catch (error) {
     console.error('Error ensuring ai_summary column:', error);
+    throw error;
+  }
+}
+
+async function migrateToRBACColumns(pool) {
+  try {
+    // Check if new RBAC columns exist
+    const developerColumnCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'issues' AND column_name = 'assigned_developer';
+    `);
+
+    const testerColumnCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'issues' AND column_name = 'assigned_tester';
+    `);
+
+    if (developerColumnCheck.rows.length === 0) {
+      console.log('RBAC columns do not exist. Adding them...');
+
+      // Add new columns
+      await pool.query('ALTER TABLE issues ADD COLUMN assigned_developer INTEGER REFERENCES users(id) ON DELETE SET NULL;');
+      await pool.query('ALTER TABLE issues ADD COLUMN assigned_tester INTEGER REFERENCES users(id) ON DELETE SET NULL;');
+
+      // Migrate existing assigned_to data to assigned_developer
+      const existingAssignments = await pool.query('SELECT id, assigned_to FROM issues WHERE assigned_to IS NOT NULL;');
+
+      for (const issue of existingAssignments.rows) {
+        // Check if assigned user is a developer
+        const userRole = await pool.query('SELECT role FROM users WHERE id = $1', [issue.assigned_to]);
+        if (userRole.rows.length > 0) {
+          const role = userRole.rows[0].role;
+          if (role === 'developer') {
+            await pool.query('UPDATE issues SET assigned_developer = $1 WHERE id = $2', [issue.assigned_to, issue.id]);
+          } else if (role === 'tester') {
+            await pool.query('UPDATE issues SET assigned_tester = $1 WHERE id = $2', [issue.assigned_to, issue.id]);
+          }
+        }
+      }
+
+      // Drop old column after migration
+      await pool.query('ALTER TABLE issues DROP COLUMN IF EXISTS assigned_to;');
+
+      console.log('RBAC columns added and data migrated successfully!');
+    } else {
+      console.log('RBAC columns already exist.');
+    }
+  } catch (error) {
+    console.error('Error migrating to RBAC columns:', error);
     throw error;
   }
 }

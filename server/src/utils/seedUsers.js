@@ -5,8 +5,12 @@ const db = require('./db');
 async function seedUsers() {
     const users = [
         ['papapp1293@gmail.com', 'Papapp', 'developer', 'password'],
-        ['alice@example.com', 'Alice', 'manager', 'password'],
-        ['bob@example.com', 'Bob', 'developer', 'password'],
+        ['alice@example.com', 'Alice Manager', 'manager', 'password'],
+        ['bob@example.com', 'Bob Developer', 'developer', 'password'],
+        ['charlie@example.com', 'Charlie Tester', 'tester', 'password'],
+        ['diana@example.com', 'Diana Developer', 'developer', 'password'],
+        ['eve@example.com', 'Eve Tester', 'tester', 'password'],
+        ['frank@example.com', 'Frank Manager', 'manager', 'password'],
     ];
 
     for (const [email, name, role, plainPassword] of users) {
