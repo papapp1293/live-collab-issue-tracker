@@ -29,6 +29,8 @@ router.post('/', async (req, res) => {
     let aiSummary = null;
     if (openaiService.isConfigured()) {
       try {
+        const estimatedCost = openaiService.estimateRequestCost(title, description);
+        console.log(`Generating AI summary (estimated cost: $${estimatedCost.toFixed(6)})`);
         aiSummary = await openaiService.generateIssueSummary(title, description);
       } catch (error) {
         console.warn('Failed to generate AI summary:', error.message);
@@ -85,6 +87,24 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
+// Get AI cost statistics (for monitoring)
+router.get('/ai/stats', async (req, res) => {
+  try {
+    if (!openaiService.isConfigured()) {
+      return res.status(400).json({ error: 'AI service not configured' });
+    }
+
+    const stats = openaiService.getCostStats();
+    res.json({
+      message: 'AI usage statistics',
+      stats
+    });
+  } catch (err) {
+    console.error('Error getting AI stats:', err);
+    res.status(500).json({ error: 'Failed to get AI statistics' });
+  }
+});
+
 // Generate AI summary for an existing issue
 router.post('/:id/generate-summary', async (req, res) => {
   try {
@@ -106,6 +126,10 @@ router.post('/:id/generate-summary', async (req, res) => {
     }
 
     console.log(`Found issue: ${issue.title}`);
+
+    // Estimate and log cost
+    const estimatedCost = openaiService.estimateRequestCost(issue.title, issue.description);
+    console.log(`Regenerating AI summary (estimated cost: $${estimatedCost.toFixed(6)})`);
 
     // Generate AI summary
     const aiSummary = await openaiService.generateIssueSummary(issue.title, issue.description);

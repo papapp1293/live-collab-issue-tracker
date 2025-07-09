@@ -8,7 +8,8 @@
     "test": "jest",
     "reset-db": "node src/utils/resetDatabase.js",
     "seed-users": "node src/utils/seedUsersOnly.js",
-    "seed-issues": "node src/utils/seedIssuesOnly.js"
+    "seed-issues": "node src/utils/seedIssuesOnly.js",
+    "check-costs": "node src/utils/checkCosts.js"
   },
   "keywords": [],
   "author": "",

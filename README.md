@@ -108,7 +108,20 @@ npm run dev  # Starts on http://localhost:5173
 - **Automatic Summaries**: Generated during issue creation
 - **Manual Generation**: Click "🤖 Generate Summary" on any issue
 - **Cost Optimization**: Summaries are stored and reused (no repeated API calls)
+- **Ultra-Low Cost**: Uses gpt-4o-mini (~$0.0002 per summary, 95% cheaper than GPT-4)
+- **Cost Monitoring**: Built-in tracking and estimation tools
 - **Graceful Degradation**: App works without AI if API key not provided
+
+### Cost Monitoring:
+```bash
+npm run check-costs  # View usage statistics and cost estimates
+```
+
+Cost tracking includes:
+- Total requests and estimated costs
+- Average cost per request  
+- Real-time cost estimates in server logs
+- API endpoint: `GET /api/issues/ai/stats` for programmatic access
 
 ## 📊 Database Management
 
