@@ -36,6 +36,9 @@ export default function Login() {
                 {error && <p className="error">{error}</p>}
                 <button type="submit">Login</button>
             </form>
+            <p className="mt-3">
+                Don't have an account? <a href="/register" className="text-blue-600 hover:underline">Create one</a>
+            </p>
         </div>
     );
 }

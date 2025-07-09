@@ -9,6 +9,7 @@ const getHeaders = () => {
   };
 };
 
+// Fetch all users in the system (for admin/assignment purposes)
 export const fetchUsers = async () => {
   const res = await fetch(`${BASE_URL}/api/users`, {
     headers: getHeaders(),
@@ -17,6 +18,7 @@ export const fetchUsers = async () => {
   return res.json();
 };
 
+// Create a new user account
 export const createUser = async (userData) => {
   const res = await fetch(`${BASE_URL}/api/users`, {
     method: 'POST',
@@ -27,6 +29,7 @@ export const createUser = async (userData) => {
   return res.json();
 };
 
+// Fetch ALL issues in the system (used in IssueList page to show all issues)
 export const fetchIssues = async () => {
   const res = await fetch(`${BASE_URL}/api/issues`, {
     headers: getHeaders(),
@@ -35,6 +38,16 @@ export const fetchIssues = async () => {
   return res.json();
 };
 
+// Fetch ONLY issues assigned to the current authenticated user (used in Dashboard)
+export const fetchMyIssues = async () => {
+  const res = await fetch(`${BASE_URL}/api/issues/my-issues`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch my issues');
+  return res.json();
+};
+
+// Create a new issue
 export const createIssue = async (issueData) => {
   const res = await fetch(`${BASE_URL}/api/issues`, {
     method: 'POST',
@@ -45,6 +58,7 @@ export const createIssue = async (issueData) => {
   return res.json();
 };
 
+// Update an existing issue (partial update - title, description, assigned_to, status)
 export const updateIssue = async (id, updatedData) => {
   const res = await fetch(`${BASE_URL}/api/issues/${id}`, {
     method: 'PATCH',
@@ -55,6 +69,7 @@ export const updateIssue = async (id, updatedData) => {
   return res.json();
 };
 
+// Delete an issue by ID
 export const deleteIssue = async (id) => {
   const res = await fetch(`${BASE_URL}/api/issues/${id}`, {
     method: 'DELETE',
@@ -64,6 +79,7 @@ export const deleteIssue = async (id) => {
   return res.json();
 };
 
+// Authenticate user with email and password
 export const login = async (credentials) => {
   const res = await fetch(`${BASE_URL}/api/auth/login`, {
     method: 'POST',
@@ -73,6 +89,20 @@ export const login = async (credentials) => {
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || 'Login failed');
+  }
+  return res.json();
+};
+
+// Register a new user
+export const register = async (userData) => {
+  const res = await fetch(`${BASE_URL}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Registration failed');
   }
   return res.json();
 };

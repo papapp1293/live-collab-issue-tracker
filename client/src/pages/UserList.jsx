@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchUsers } from '../services/api';
+import { Link } from 'react-router-dom';
 
 export default function UserList() {
   const [users, setUsers] = useState([]);
@@ -21,7 +22,12 @@ export default function UserList() {
 
   return (
     <div className="container">
-      <h2 className="title mb-3">All Users</h2>
+      <div className="flex space-between middle mb-3">
+        <h2 className="title">All Users</h2>
+        <Link to="/" className="button secondary small">
+          🏠 Home
+        </Link>
+      </div>
       <ul>
         {users.map((user) => (
           <li key={user.id} className="card p">

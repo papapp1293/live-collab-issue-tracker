@@ -68,9 +68,14 @@ export default function IssueList() {
     <div className="container">
       <div className="flex space-between middle mb-3">
         <h2 className="title">All Issues</h2>
-        <Link to="/issues/create" className="button primary small">
-          + New Issue
-        </Link>
+        <div className="flex gap">
+          <Link to="/" className="button secondary small">
+            🏠 Home
+          </Link>
+          <Link to="/issues/create" className="button primary small">
+            + New Issue
+          </Link>
+        </div>
       </div>
 
       {deleteMode ? (
@@ -121,7 +126,7 @@ export default function IssueList() {
                     {issue.status.replace('_', ' ')}
                   </span>
                   <span className="badge secondary">
-                    {issue.assigned_to ? `Assigned to ${issue.assigned_to}` : 'Unassigned'}
+                    {issue.assigned_to_name ? `Assigned to ${issue.assigned_to_name}` : 'Unassigned'}
                   </span>
                 </div>
               </div>

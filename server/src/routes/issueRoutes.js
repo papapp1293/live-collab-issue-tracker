@@ -2,6 +2,23 @@ const express = require('express');
 const router = express.Router();
 const IssueModel = require('../models/issueModel');
 
+// Get issues assigned to the current user
+router.get('/my-issues', async (req, res) => {
+  try {
+    // req.user should be available from auth middleware
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const issues = await IssueModel.getIssuesByUserId(userId);
+    res.json(issues);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch user issues' });
+  }
+});
+
 // Create a new issue
 router.post('/', async (req, res) => {
   try {
@@ -48,7 +65,6 @@ router.patch('/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to update issue' });
   }
 });
-
 
 // Delete issue
 router.delete('/:id', async (req, res) => {

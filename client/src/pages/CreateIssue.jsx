@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { fetchUsers, createIssue } from '../services/api';
 
 export default function CreateIssue() {
@@ -43,7 +43,12 @@ export default function CreateIssue() {
 
   return (
     <div className="container" style={{ maxWidth: '600px' }}>
-      <h2 className="title mb-3">Create New Issue</h2>
+      <div className="flex space-between middle mb-3">
+        <h2 className="title">Create New Issue</h2>
+        <Link to="/issues" className="button secondary small" style={{ minWidth: '32px', textAlign: 'center' }}>
+          ✕
+        </Link>
+      </div>
       <form onSubmit={handleSubmit} className="form stacked">
         <label htmlFor="title">Title</label>
         <input

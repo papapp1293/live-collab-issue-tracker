@@ -2,12 +2,14 @@ import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
+import Dashboard from './pages/Dashboard';
 import UserList from './pages/UserList';
 import IssueList from './pages/IssueList';
 import CreateIssue from './pages/CreateIssue';
 import EditIssue from './pages/EditIssue';
 import IssueDetail from './pages/IssueDetail';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import './App.css';
 
 function AppLayout() {
@@ -23,6 +25,7 @@ function AppLayout() {
     <div className="p-6">
       <nav className="mb-6 flex justify-between items-center">
         <div className="space-x-4">
+          <Link to="/" className="text-blue-600 hover:underline">Dashboard</Link>
           <Link to="/users" className="text-blue-600 hover:underline">Users</Link>
           <Link to="/issues" className="text-blue-600 hover:underline">Issues</Link>
         </div>
@@ -38,6 +41,7 @@ function AppLayout() {
       </nav>
 
       <Routes>
+        <Route path="/" element={<Dashboard />} />
         <Route path="/users" element={<UserList />} />
         <Route path="/issues" element={<IssueList />} />
         <Route path="/issues/create" element={<CreateIssue />} />
@@ -53,8 +57,9 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public Route */}
+          {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
           {/* Protected App Layout */}
           <Route

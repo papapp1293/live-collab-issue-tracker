@@ -13,13 +13,30 @@ const IssueModel = {
 
   // Get all issues
   getAllIssues: async () => {
-    const result = await db.query('SELECT * FROM issues ORDER BY created_at DESC');
+    const result = await db.query(`
+      SELECT i.*, u.name as assigned_to_name 
+      FROM issues i 
+      LEFT JOIN users u ON i.assigned_to = u.id 
+      ORDER BY i.created_at DESC
+    `);
+    return result.rows;
+  },
+
+  // Get issues assigned to a specific user
+  getIssuesByUserId: async (userId) => {
+    const result = await db.query(
+      'SELECT i.*, u.name as assigned_to_name FROM issues i LEFT JOIN users u ON i.assigned_to = u.id WHERE i.assigned_to = $1 ORDER BY i.created_at DESC',
+      [userId]
+    );
     return result.rows;
   },
 
   // Get issue by ID
   getIssueById: async (id) => {
-    const result = await db.query('SELECT * FROM issues WHERE id = $1', [id]);
+    const result = await db.query(
+      'SELECT i.*, u.name as assigned_to_name, u.email as assigned_to_email FROM issues i LEFT JOIN users u ON i.assigned_to = u.id WHERE i.id = $1',
+      [id]
+    );
     return result.rows[0];
   },
 

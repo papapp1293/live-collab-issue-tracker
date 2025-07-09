@@ -34,7 +34,12 @@ export default function IssueDetail() {
 
     return (
         <div className="container p-4">
-            <h2 className="header mb-4">{issue.title}</h2>
+            <div className="flex space-between middle mb-4">
+                <h2 className="header">{issue.title}</h2>
+                <Link to="/issues" className="button secondary small" style={{ minWidth: '32px', textAlign: 'center' }}>
+                    ✕
+                </Link>
+            </div>
 
             <p className="mb-3">
                 <strong>Description: </strong> {issue.description}
