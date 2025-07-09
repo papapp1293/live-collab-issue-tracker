@@ -140,6 +140,11 @@ export default function IssueList() {
       <div className="flex space-between middle mb-3">
         <div className="flex middle gap">
           <h2 className="title">All Issues</h2>
+          {issues.length > 0 && (
+            <span className="badge primary small">
+              {issues.length} issue{issues.length !== 1 ? 's' : ''}
+            </span>
+          )}
           <span className="badge success small">
             🟢 Live Updates
           </span>
@@ -209,10 +214,19 @@ export default function IssueList() {
                   )}
                 </div>
                 <p className="text-muted">{issue.description}</p>
+
+                {issue.ai_summary && (
+                  <div className="alert success mt-2 mb-2" style={{ padding: '8px 12px' }}>
+                    <strong>🤖 AI Summary:</strong> {issue.ai_summary}
+                  </div>
+                )}
+
                 <div className="flex gap wrap mt-1">
                   <span className="badge primary" style={{ textTransform: 'capitalize' }}>
                     {issue.status.replace('_', ' ')}
                   </span>
+                </div>
+                <div className="flex gap wrap mt-1">
                   <span className="badge secondary">
                     {issue.assigned_to_name ? `Assigned to ${issue.assigned_to_name}` : 'Unassigned'}
                   </span>

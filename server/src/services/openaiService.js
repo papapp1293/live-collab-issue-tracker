@@ -24,7 +24,7 @@ class OpenAIService {
             // Estimate cost for monitoring
             const estimatedCost = this.estimateRequestCost(title, description);
 
-            const prompt = `Summarize this software issue in 1-2 concise sentences (max 200 chars):
+            const prompt = `Summarize this software issue in 1-2 concise sentences. MAKE SURE IT IS UNDER 300 CHARACTERS:
 
 Title: ${title || 'No title'}
 Description: ${description || 'No description'}

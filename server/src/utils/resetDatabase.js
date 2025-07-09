@@ -8,6 +8,9 @@ require('dotenv').config();
 const seedUsers = require('./seedUsers');
 const seedIssues = require('./seedIssues');
 
+// Reset AI cost monitoring when database is reset
+const openaiService = require('../services/openaiService');
+
 const RESET_SCHEMA_FILE = path.join(__dirname, '../../db/reset-schema.sql');
 
 async function resetDatabase() {
@@ -19,6 +22,8 @@ async function resetDatabase() {
         const resetSql = fs.readFileSync(RESET_SCHEMA_FILE, 'utf8');
 
         console.log('🗑️  Dropping all tables and recreating...');
+        console.log('   - Users table (with auth data)');
+        console.log('   - Issues table (with AI summaries)');
         await pool.query(resetSql);
         console.log('✅ Database reset complete.');
 
@@ -29,6 +34,12 @@ async function resetDatabase() {
         console.log('📋 Seeding sample issues...');
         await seedIssues();
         console.log('✅ Issues seeded.');
+
+        // Reset AI cost monitoring stats
+        if (openaiService.isConfigured()) {
+            openaiService.resetCostStats();
+            console.log('🤖 AI cost monitoring reset.');
+        }
 
         console.log('🎉 Database reset and seeding complete!');
 
