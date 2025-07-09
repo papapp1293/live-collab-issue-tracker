@@ -3,10 +3,10 @@ const db = require('../utils/db');
 
 const IssueModel = {
   // Create a new issue
-  createIssue: async ({ title, description, assigned_to }) => {
+  createIssue: async ({ title, description, assigned_to, ai_summary = null }) => {
     const result = await db.query(
-      'INSERT INTO issues (title, description, assigned_to) VALUES ($1, $2, $3) RETURNING *',
-      [title, description, assigned_to]
+      'INSERT INTO issues (title, description, assigned_to, ai_summary) VALUES ($1, $2, $3, $4) RETURNING *',
+      [title, description, assigned_to, ai_summary]
     );
     return result.rows[0];
   },
@@ -62,6 +62,15 @@ const IssueModel = {
     const result = await db.query(query, [...values, id]);
 
     return result.rows[0] || null;
+  },
+
+  // Update AI summary for an issue
+  updateAISummary: async (id, aiSummary) => {
+    const result = await db.query(
+      'UPDATE issues SET ai_summary = $1 WHERE id = $2 RETURNING *',
+      [aiSummary, id]
+    );
+    return result.rows[0];
   },
 
   // Delete issue by ID

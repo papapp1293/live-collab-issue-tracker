@@ -1,10 +1,11 @@
--- server/db/schema.sql
+-- server/db/reset-schema.sql
+-- Use this file when you want to completely reset the database
 
--- Users table (only drop if doing a full reset)
--- DROP TABLE IF EXISTS issues CASCADE;
--- DROP TABLE IF EXISTS users CASCADE;
+-- Drop all tables and recreate from scratch
+DROP TABLE IF EXISTS issues CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -13,8 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Issues table
-CREATE TABLE IF NOT EXISTS issues (
+CREATE TABLE issues (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
@@ -23,4 +23,3 @@ CREATE TABLE IF NOT EXISTS issues (
     assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-

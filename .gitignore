@@ -6,3 +6,6 @@ node_modules
 
 # Build
 dist
+
+# AI Setup (contains API key info)
+AI_SETUP.md

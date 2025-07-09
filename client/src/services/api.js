@@ -106,3 +106,13 @@ export const register = async (userData) => {
   }
   return res.json();
 };
+
+// Generate AI summary for an existing issue
+export const generateAISummary = async (issueId) => {
+  const res = await fetch(`${BASE_URL}/api/issues/${issueId}/generate-summary`, {
+    method: 'POST',
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to generate AI summary');
+  return res.json();
+};

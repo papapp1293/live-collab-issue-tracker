@@ -4,8 +4,6 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-const seedUsers = require('./seedUsers');
-
 const DB_NAME = 'live_collab_db';
 const SCHEMA_FILE = path.join(__dirname, '../../db/schema.sql');
 
@@ -34,15 +32,13 @@ async function setupDatabase() {
       connectionString: process.env.DATABASE_URL,
     });
 
-    const schemaSql = fs.readFileSync(SCHEMA_FILE, 'utf8');
-
-    console.log('Running schema.sql...');
+    const schemaSql = fs.readFileSync(SCHEMA_FILE, 'utf8'); console.log('Running schema.sql...');
     await pool.query(schemaSql);
     console.log('schema.sql executed.');
 
-    console.log('Seeding users with hashed passwords...');
-    await seedUsers();
-    console.log('User seed complete.');
+    // Check if ai_summary column exists
+    console.log('Checking ai_summary column...');
+    await ensureAISummaryColumn(pool);
 
     await pool.end();
 
@@ -50,6 +46,28 @@ async function setupDatabase() {
   } catch (err) {
     console.error('Error setting up database:', err);
     process.exit(1);
+  }
+}
+
+async function ensureAISummaryColumn(pool) {
+  try {
+    // Check if ai_summary column exists
+    const columnCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'issues' AND column_name = 'ai_summary';
+    `);
+
+    if (columnCheck.rows.length === 0) {
+      console.log('ai_summary column does not exist. Adding it...');
+      await pool.query('ALTER TABLE issues ADD COLUMN ai_summary TEXT;');
+      console.log('ai_summary column added successfully!');
+    } else {
+      console.log('ai_summary column already exists.');
+    }
+  } catch (error) {
+    console.error('Error ensuring ai_summary column:', error);
+    throw error;
   }
 }
 
