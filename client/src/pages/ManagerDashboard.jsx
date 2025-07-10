@@ -9,6 +9,9 @@ export default function ManagerDashboard() {
     const [error, setError] = useState(null);
     const [developers, setDevelopers] = useState([]);
     const [testers, setTesters] = useState([]);
+    const [assignmentModal, setAssignmentModal] = useState(null); // { issueId, issueTitle, currentDeveloper, currentTester }
+    const [selectedDeveloper, setSelectedDeveloper] = useState('');
+    const [selectedTester, setSelectedTester] = useState('');
     const navigate = useNavigate();
     const { user } = useAuth();
 
@@ -67,13 +70,16 @@ export default function ManagerDashboard() {
                 // Refresh issues
                 const updatedIssues = await fetchIssues();
                 setIssues(updatedIssues);
+                return true;
             } else {
                 const error = await response.json();
                 alert(error.error || 'Failed to assign developer');
+                return false;
             }
         } catch (err) {
             console.error('Error assigning developer:', err);
             alert('Failed to assign developer');
+            return false;
         }
     };
 
@@ -92,13 +98,55 @@ export default function ManagerDashboard() {
                 // Refresh issues
                 const updatedIssues = await fetchIssues();
                 setIssues(updatedIssues);
+                return true;
             } else {
                 const error = await response.json();
                 alert(error.error || 'Failed to assign tester');
+                return false;
             }
         } catch (err) {
             console.error('Error assigning tester:', err);
             alert('Failed to assign tester');
+            return false;
+        }
+    };
+
+    const openAssignmentModal = (issue) => {
+        setAssignmentModal({
+            issueId: issue.id,
+            issueTitle: issue.title,
+            currentDeveloper: issue.assigned_developer,
+            currentTester: issue.assigned_tester,
+            currentDeveloperName: issue.assigned_developer_name,
+            currentTesterName: issue.assigned_tester_name
+        });
+        setSelectedDeveloper(issue.assigned_developer || '');
+        setSelectedTester(issue.assigned_tester || '');
+    };
+
+    const closeAssignmentModal = () => {
+        setAssignmentModal(null);
+        setSelectedDeveloper('');
+        setSelectedTester('');
+    };
+
+    const confirmAssignments = async () => {
+        if (!assignmentModal) return;
+
+        let success = true;
+
+        // Only assign developer if selection changed
+        if (selectedDeveloper !== assignmentModal.currentDeveloper) {
+            success = await assignDeveloper(assignmentModal.issueId, selectedDeveloper || null);
+        }
+
+        // Only assign tester if selection changed
+        if (success && selectedTester !== assignmentModal.currentTester) {
+            success = await assignTester(assignmentModal.issueId, selectedTester || null);
+        }
+
+        if (success) {
+            closeAssignmentModal();
         }
     };
 
@@ -185,26 +233,12 @@ export default function ManagerDashboard() {
                                         {getAssignmentStatusBadge(issue)}
                                     </div>
                                     <div className="flex gap">
-                                        <select
-                                            onChange={(e) => e.target.value && assignDeveloper(issue.id, e.target.value)}
-                                            defaultValue=""
-                                            className="select small"
+                                        <button
+                                            onClick={() => openAssignmentModal(issue)}
+                                            className="button primary small"
                                         >
-                                            <option value="">Assign Developer</option>
-                                            {developers.map(dev => (
-                                                <option key={dev.id} value={dev.id}>{dev.name}</option>
-                                            ))}
-                                        </select>
-                                        <select
-                                            onChange={(e) => e.target.value && assignTester(issue.id, e.target.value)}
-                                            defaultValue=""
-                                            className="select small"
-                                        >
-                                            <option value="">Assign Tester</option>
-                                            {testers.map(tester => (
-                                                <option key={tester.id} value={tester.id}>{tester.name}</option>
-                                            ))}
-                                        </select>
+                                            👥 Assign Team
+                                        </button>
                                         <button
                                             onClick={() => navigate(`/issues/${issue.id}`)}
                                             className="button secondary small"
@@ -238,39 +272,25 @@ export default function ManagerDashboard() {
                                         )}
                                         <div className="flex gap wrap mt-1">
                                             {getAssignmentStatusBadge(issue)}
-                                            {issue.assigned_developer_name && (
-                                                <span className="badge secondary small">Dev: {issue.assigned_developer_name}</span>
-                                            )}
-                                            {issue.assigned_tester_name && (
-                                                <span className="badge secondary small">Test: {issue.assigned_tester_name}</span>
-                                            )}
                                         </div>
+                                        {issue.assigned_developer_name && (
+                                            <div className="mt-1">
+                                                <span className="badge secondary small">Dev: {issue.assigned_developer_name}</span>
+                                            </div>
+                                        )}
+                                        {issue.assigned_tester_name && (
+                                            <div className="mt-1">
+                                                <span className="badge secondary small">Test: {issue.assigned_tester_name}</span>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex gap">
-                                        {!issue.assigned_developer && (
-                                            <select
-                                                onChange={(e) => e.target.value && assignDeveloper(issue.id, e.target.value)}
-                                                defaultValue=""
-                                                className="select small"
-                                            >
-                                                <option value="">Assign Developer</option>
-                                                {developers.map(dev => (
-                                                    <option key={dev.id} value={dev.id}>{dev.name}</option>
-                                                ))}
-                                            </select>
-                                        )}
-                                        {!issue.assigned_tester && (
-                                            <select
-                                                onChange={(e) => e.target.value && assignTester(issue.id, e.target.value)}
-                                                defaultValue=""
-                                                className="select small"
-                                            >
-                                                <option value="">Assign Tester</option>
-                                                {testers.map(tester => (
-                                                    <option key={tester.id} value={tester.id}>{tester.name}</option>
-                                                ))}
-                                            </select>
-                                        )}
+                                        <button
+                                            onClick={() => openAssignmentModal(issue)}
+                                            className="button primary small"
+                                        >
+                                            👥 Assign Team
+                                        </button>
                                         <button
                                             onClick={() => navigate(`/issues/${issue.id}`)}
                                             className="button secondary small"
@@ -302,20 +322,32 @@ export default function ManagerDashboard() {
                                                 {issue.status.replace('_', ' ')}
                                             </span>
                                             {getAssignmentStatusBadge(issue)}
-                                            {issue.assigned_developer_name && (
-                                                <span className="badge secondary small">Dev: {issue.assigned_developer_name}</span>
-                                            )}
-                                            {issue.assigned_tester_name && (
-                                                <span className="badge secondary small">Test: {issue.assigned_tester_name}</span>
-                                            )}
                                         </div>
+                                        {issue.assigned_developer_name && (
+                                            <div className="mt-1">
+                                                <span className="badge secondary small">Dev: {issue.assigned_developer_name}</span>
+                                            </div>
+                                        )}
+                                        {issue.assigned_tester_name && (
+                                            <div className="mt-1">
+                                                <span className="badge secondary small">Test: {issue.assigned_tester_name}</span>
+                                            </div>
+                                        )}
                                     </div>
-                                    <button
-                                        onClick={() => navigate(`/issues/${issue.id}`)}
-                                        className="button secondary small"
-                                    >
-                                        View
-                                    </button>
+                                    <div className="flex gap">
+                                        <button
+                                            onClick={() => openAssignmentModal(issue)}
+                                            className="button primary small"
+                                        >
+                                            👥 Assign
+                                        </button>
+                                        <button
+                                            onClick={() => navigate(`/issues/${issue.id}`)}
+                                            className="button secondary small"
+                                        >
+                                            View
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                             {issues.length > 10 && (
@@ -329,6 +361,101 @@ export default function ManagerDashboard() {
                     )}
                 </div>
             </div>
+
+            {/* Assignment Modal */}
+            {assignmentModal && (
+                <div className="modal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="card p" style={{ width: '600px', maxWidth: '90vw' }}>
+                        <div className="flex space-between middle mb-3">
+                            <h3>Assign Team Members</h3>
+                            <button
+                                onClick={closeAssignmentModal}
+                                className="button secondary small"
+                                style={{ padding: '4px 8px' }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="mb-3">
+                            <h4 className="mb-2">Issue: {assignmentModal.issueTitle}</h4>
+                        </div>
+
+                        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                            {/* Developer Assignment */}
+                            <div>
+                                <h4 className="mb-2">👨‍💻 Developer Assignment</h4>
+                                <div className="mb-2">
+                                    <strong>Currently Assigned:</strong>
+                                    <div className="mt-1">
+                                        {assignmentModal.currentDeveloperName ? (
+                                            <span className="badge secondary">{assignmentModal.currentDeveloperName}</span>
+                                        ) : (
+                                            <span className="badge danger">Unassigned</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="label">Assign Developer:</label>
+                                    <select
+                                        value={selectedDeveloper}
+                                        onChange={(e) => setSelectedDeveloper(e.target.value)}
+                                        className="select w-full"
+                                    >
+                                        <option value="">-- No Developer --</option>
+                                        {developers.map(dev => (
+                                            <option key={dev.id} value={dev.id}>{dev.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Tester Assignment */}
+                            <div>
+                                <h4 className="mb-2">🧪 Tester Assignment</h4>
+                                <div className="mb-2">
+                                    <strong>Currently Assigned:</strong>
+                                    <div className="mt-1">
+                                        {assignmentModal.currentTesterName ? (
+                                            <span className="badge secondary">{assignmentModal.currentTesterName}</span>
+                                        ) : (
+                                            <span className="badge danger">Unassigned</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="label">Assign Tester:</label>
+                                    <select
+                                        value={selectedTester}
+                                        onChange={(e) => setSelectedTester(e.target.value)}
+                                        className="select w-full"
+                                    >
+                                        <option value="">-- No Tester --</option>
+                                        {testers.map(tester => (
+                                            <option key={tester.id} value={tester.id}>{tester.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap right mt-4">
+                            <button
+                                onClick={closeAssignmentModal}
+                                className="button secondary"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmAssignments}
+                                className="button primary"
+                            >
+                                ✓ Confirm Assignments
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
