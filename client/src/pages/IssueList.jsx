@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchIssues, deleteIssue, fetchUsersByRole } from '../services/api';
+import { fetchIssues, deleteIssue, fetchUsersByRole, assignDeveloper, assignTester } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import socketService from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
@@ -141,56 +141,30 @@ export default function IssueList() {
     }
   };
 
-  const assignDeveloper = async (issueId, developerId) => {
+  const handleAssignDeveloper = async (issueId, developerId) => {
     try {
-      const response = await fetch(`/api/issues/${issueId}/assign-developer`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ developerId })
-      });
-
-      if (response.ok) {
-        const updatedIssues = await fetchIssues();
-        setIssues(updatedIssues);
-        return true;
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to assign developer');
-        return false;
-      }
+      await assignDeveloper(issueId, developerId);
+      // Refresh issues after successful assignment
+      const updatedIssues = await fetchIssues();
+      setIssues(updatedIssues);
+      return true;
     } catch (err) {
       console.error('Error assigning developer:', err);
-      alert('Failed to assign developer');
+      alert(err.message || 'Failed to assign developer');
       return false;
     }
   };
 
-  const assignTester = async (issueId, testerId) => {
+  const handleAssignTester = async (issueId, testerId) => {
     try {
-      const response = await fetch(`/api/issues/${issueId}/assign-tester`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ testerId })
-      });
-
-      if (response.ok) {
-        const updatedIssues = await fetchIssues();
-        setIssues(updatedIssues);
-        return true;
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to assign tester');
-        return false;
-      }
+      await assignTester(issueId, testerId);
+      // Refresh issues after successful assignment
+      const updatedIssues = await fetchIssues();
+      setIssues(updatedIssues);
+      return true;
     } catch (err) {
       console.error('Error assigning tester:', err);
-      alert('Failed to assign tester');
+      alert(err.message || 'Failed to assign tester');
       return false;
     }
   };
@@ -220,11 +194,11 @@ export default function IssueList() {
     let success = true;
 
     if (selectedDeveloper !== assignmentModal.currentDeveloper) {
-      success = await assignDeveloper(assignmentModal.issueId, selectedDeveloper || null);
+      success = await handleAssignDeveloper(assignmentModal.issueId, selectedDeveloper || null);
     }
 
     if (success && selectedTester !== assignmentModal.currentTester) {
-      success = await assignTester(assignmentModal.issueId, selectedTester || null);
+      success = await handleAssignTester(assignmentModal.issueId, selectedTester || null);
     }
 
     if (success) {

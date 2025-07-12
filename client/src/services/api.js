@@ -131,6 +131,34 @@ export const fetchUsersByRole = async (role) => {
   }
 };
 
+// Assign developer to issue (manager only)
+export const assignDeveloper = async (issueId, developerId) => {
+  const res = await fetch(`${BASE_URL}/api/issues/${issueId}/assign-developer`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ developerId }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to assign developer');
+  }
+  return res.json();
+};
+
+// Assign tester to issue (manager only)
+export const assignTester = async (issueId, testerId) => {
+  const res = await fetch(`${BASE_URL}/api/issues/${issueId}/assign-tester`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ testerId }),
+  });
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to assign tester');
+  }
+  return res.json();
+};
+
 // Generate AI summary for an existing issue
 export const generateAISummary = async (issueId) => {
   const res = await fetch(`${BASE_URL}/api/issues/${issueId}/generate-summary`, {
