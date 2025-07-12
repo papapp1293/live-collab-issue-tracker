@@ -50,7 +50,9 @@ export default function IssueDetail() {
         );
     if (!issue) return <p className="p p-3">Loading...</p>;
 
-    const assignedUser = users.find((u) => u.id === issue.assigned_to);
+    // Find assigned users by their individual roles
+    const assignedDeveloper = users.find((u) => u.id === issue.assigned_developer);
+    const assignedTester = users.find((u) => u.id === issue.assigned_tester);
 
     return (
         <div className="container p-4">
@@ -106,12 +108,43 @@ export default function IssueDetail() {
             )}
 
             <p className="mb-3">
-                <strong>Status: </strong> {issue.status}
+                <strong>Status: </strong>
+                <span className="badge primary" style={{ textTransform: 'capitalize' }}>
+                    {issue.status.replace('_', ' ')}
+                </span>
             </p>
-            <p className="mb-4">
-                <strong>Assigned To: </strong>{' '}
-                {assignedUser ? `${assignedUser.name} (${assignedUser.email})` : 'Not Assigned'}
-            </p>
+
+            <div className="mb-4">
+                <strong>Assignments:</strong>
+                <div className="mt-2">
+                    {assignedDeveloper ? (
+                        <div className="mb-1">
+                            <span className="badge secondary">
+                                Assigned Developer: {assignedDeveloper.name} ({assignedDeveloper.email})
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="mb-1">
+                            <span className="badge secondary">
+                                Assigned Developer: None
+                            </span>
+                        </div>
+                    )}
+                    {assignedTester ? (
+                        <div className="mb-1">
+                            <span className="badge secondary">
+                                Assigned Tester: {assignedTester.name} ({assignedTester.email})
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="mb-1">
+                            <span className="badge secondary">
+                                Assigned Tester: None
+                            </span>
+                        </div>
+                    )}
+                </div>
+            </div>
 
             <div className="buttons mt-4">
                 <Link to={`/issues/${issue.id}/edit`} className="button primary small mr-2">

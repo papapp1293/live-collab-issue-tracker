@@ -36,8 +36,8 @@ export default function Dashboard() {
 
         // Set up Socket.IO listeners for real-time updates to user's issues
         socketService.onIssueCreated((newIssue) => {
-            // Only add if the issue is assigned to current user
-            if (newIssue.assigned_to === user?.id) {
+            // Only add if the issue is assigned to current user (as developer or tester)
+            if (newIssue.assigned_developer === user?.id || newIssue.assigned_tester === user?.id) {
                 setMyIssues(prevIssues => [newIssue, ...prevIssues]);
             }
         });
@@ -45,24 +45,25 @@ export default function Dashboard() {
         socketService.onIssueUpdated((updatedIssue) => {
             setMyIssues(prevIssues => {
                 const existingIndex = prevIssues.findIndex(issue => issue.id === updatedIssue.id);
+                const isAssignedToUser = updatedIssue.assigned_developer === user?.id || updatedIssue.assigned_tester === user?.id;
 
-                // If issue was already in Alice's list (assigned to her)
+                // If issue was already in user's list
                 if (existingIndex !== -1) {
-                    // If it's still assigned to Alice, update it
-                    if (updatedIssue.assigned_to === user?.id) {
+                    // If it's still assigned to user, update it
+                    if (isAssignedToUser) {
                         return prevIssues.map(issue =>
                             issue.id === updatedIssue.id ? { ...issue, ...updatedIssue } : issue
                         );
                     } else {
-                        // If it's no longer assigned to Alice, remove it
+                        // If it's no longer assigned to user, remove it
                         return prevIssues.filter(issue => issue.id !== updatedIssue.id);
                     }
                 } else {
-                    // If issue wasn't in Alice's list but is now assigned to her, add it
-                    if (updatedIssue.assigned_to === user?.id) {
+                    // If issue wasn't in user's list but is now assigned to them, add it
+                    if (isAssignedToUser) {
                         return [updatedIssue, ...prevIssues];
                     }
-                    // Otherwise, ignore the update (not relevant to Alice)
+                    // Otherwise, ignore the update (not relevant to user)
                     return prevIssues;
                 }
             });

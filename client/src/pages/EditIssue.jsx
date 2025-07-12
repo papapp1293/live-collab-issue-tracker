@@ -106,7 +106,7 @@ export default function EditIssue() {
                     <option value="closed">Closed</option>
                 </select>
 
-                <label htmlFor="assigned_developer">Assign Developer</label>
+                <label htmlFor="assigned_developer">Assigned Developer</label>
                 <select
                     id="assigned_developer"
                     name="assigned_developer"
@@ -123,7 +123,7 @@ export default function EditIssue() {
                 </select>
                 {!isManager && <small className="text-muted">Only managers can assign developers</small>}
 
-                <label htmlFor="assigned_tester">Assign Tester</label>
+                <label htmlFor="assigned_tester">Assigned Tester</label>
                 <select
                     id="assigned_tester"
                     name="assigned_tester"
