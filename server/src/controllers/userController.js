@@ -119,28 +119,18 @@ const userController = {
 
     // Get users by role (for assignment dropdowns)
     getUsersByRole: async (req, res) => {
-        console.log('🔍 getUsersByRole called');
-        console.log('Request params:', req.params);
-        console.log('Request user:', req.user);
-
         try {
             const { role } = req.params;
-            console.log('Requested role:', role);
 
             // Validate role
             if (!['developer', 'tester'].includes(role)) {
-                console.log('❌ Invalid role:', role);
                 return res.status(400).json({ error: 'Invalid role. Must be developer or tester' });
             }
 
-            console.log('✅ Fetching users with role:', role);
             const users = await UserModel.getUsersByRole(role);
-            console.log('Users found:', users.length);
-
-            console.log('✅ Returning users:', users.length);
             res.json(sanitizeUsers(users));
         } catch (err) {
-            console.error('❌ Error fetching users by role:', err);
+            console.error('Error fetching users by role:', err);
             res.status(500).json({ error: 'Failed to fetch users by role' });
         }
     }

@@ -109,8 +109,8 @@ export default function IssueList() {
   // Fetch developers and testers for managers
   useEffect(() => {
     if (user?.role === 'manager') {
-      fetchUsersByRole('developer', 'IssueList').then(setDevelopers).catch(console.error);
-      fetchUsersByRole('tester', 'IssueList').then(setTesters).catch(console.error);
+      fetchUsersByRole('developer').then(setDevelopers).catch(console.error);
+      fetchUsersByRole('tester').then(setTesters).catch(console.error);
     }
   }, [user?.role]);
 

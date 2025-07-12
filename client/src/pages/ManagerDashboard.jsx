@@ -33,8 +33,8 @@ export default function ManagerDashboard() {
             .finally(() => setLoading(false));
 
         // Fetch developers and testers for assignment dropdowns
-        fetchUsersByRole('developer', 'ManagerDashboard').then(setDevelopers).catch(console.error);
-        fetchUsersByRole('tester', 'ManagerDashboard').then(setTesters).catch(console.error);
+        fetchUsersByRole('developer').then(setDevelopers).catch(console.error);
+        fetchUsersByRole('tester').then(setTesters).catch(console.error);
     }, []);
 
     const assignDeveloper = async (issueId, developerId) => {

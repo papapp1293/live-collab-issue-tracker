@@ -24,11 +24,11 @@ export default function CreateIssue() {
   useEffect(() => {
     // Only managers can assign during creation, others create unassigned issues
     if (user?.role === 'manager') {
-      fetchUsersByRole('developer', 'CreateIssue')
-        .then(setDevelopers)
-        .catch(() => setError('Failed to load developers'));
+      fetchUsersByRole('developer')
+      .then(setDevelopers)
+      .catch(() => setError('Failed to load developers'));
 
-      fetchUsersByRole('tester', 'CreateIssue')
+      fetchUsersByRole('tester')
         .then(setTesters)
         .catch(() => setError('Failed to load testers'));
     }

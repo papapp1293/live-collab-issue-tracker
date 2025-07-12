@@ -23,10 +23,10 @@ export default function EditIssue() {
             else setError('Issue not found');
         });
 
-        fetchUsersByRole('developer', 'EditIssue').then(setDevelopers).catch(() => {
+        fetchUsersByRole('developer').then(setDevelopers).catch(() => {
             if (isManager) setError('Failed to load developers');
         });
-        fetchUsersByRole('tester', 'EditIssue').then(setTesters).catch(() => {
+        fetchUsersByRole('tester').then(setTesters).catch(() => {
             if (isManager) setError('Failed to load testers');
         });
     }, [id, isManager]);
