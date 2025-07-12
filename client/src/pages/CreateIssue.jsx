@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { fetchUsers, createIssue } from '../services/api';
+import { createIssue, fetchUsersByRole } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
 
@@ -24,28 +24,15 @@ export default function CreateIssue() {
   useEffect(() => {
     // Only managers can assign during creation, others create unassigned issues
     if (user?.role === 'manager') {
-      fetchUsersByRole('developer').then(setDevelopers).catch(() => setError('Failed to load developers'));
-      fetchUsersByRole('tester').then(setTesters).catch(() => setError('Failed to load testers'));
+      fetchUsersByRole('developer', 'CreateIssue')
+        .then(setDevelopers)
+        .catch(() => setError('Failed to load developers'));
+
+      fetchUsersByRole('tester', 'CreateIssue')
+        .then(setTesters)
+        .catch(() => setError('Failed to load testers'));
     }
   }, [user]);
-
-  const fetchUsersByRole = async (role) => {
-    try {
-      const response = await fetch(`/api/issues/users/${role}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (response.ok) {
-        return await response.json();
-      }
-      return [];
-    } catch (err) {
-      console.error(`Error fetching ${role}s:`, err);
-      return [];
-    }
-  };
 
   const handleChange = (e) => {
     setIssue({ ...issue, [e.target.name]: e.target.value });

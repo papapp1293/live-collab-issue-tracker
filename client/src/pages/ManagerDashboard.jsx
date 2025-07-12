@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchIssues } from '../services/api';
+import { fetchIssues, fetchUsersByRole } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -33,27 +33,9 @@ export default function ManagerDashboard() {
             .finally(() => setLoading(false));
 
         // Fetch developers and testers for assignment dropdowns
-        fetchUsersByRole('developer').then(setDevelopers).catch(console.error);
-        fetchUsersByRole('tester').then(setTesters).catch(console.error);
+        fetchUsersByRole('developer', 'ManagerDashboard').then(setDevelopers).catch(console.error);
+        fetchUsersByRole('tester', 'ManagerDashboard').then(setTesters).catch(console.error);
     }, []);
-
-    const fetchUsersByRole = async (role) => {
-        try {
-            const response = await fetch(`/api/issues/users/${role}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (response.ok) {
-                return await response.json();
-            }
-            return [];
-        } catch (err) {
-            console.error(`Error fetching ${role}s:`, err);
-            return [];
-        }
-    };
 
     const assignDeveloper = async (issueId, developerId) => {
         try {

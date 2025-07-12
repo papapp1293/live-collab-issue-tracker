@@ -35,18 +35,6 @@ const UserModel = {
     return result.rows;
   },
 
-  // Get developers
-  getDevelopers: async () => {
-    const result = await db.query('SELECT * FROM users WHERE role = $1 ORDER BY name', ['developer']);
-    return result.rows;
-  },
-
-  // Get testers
-  getTesters: async () => {
-    const result = await db.query('SELECT * FROM users WHERE role = $1 ORDER BY name', ['tester']);
-    return result.rows;
-  },
-
   // Update user by ID with partial data (email, name, role)
   updateUser: async (id, data) => {
     const keys = Object.keys(data);

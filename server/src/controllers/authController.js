@@ -12,12 +12,12 @@ const register = async (req, res) => {
 
         const hashed = await bcrypt.hash(password, 10);
         const result = await db.query(
-            'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email',
+            'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email, role, created_at',
             [name, email, hashed]
         );
 
         const user = result.rows[0];
-        const token = generateToken({ id: user.id, email: user.email });  // use jwt.js generateToken
+        const token = generateToken({ id: user.id, email: user.email, role: user.role });  // include role in JWT
         res.json({ user, token });
     } catch (err) {
         console.error(err);
@@ -36,7 +36,7 @@ const login = async (req, res) => {
         }
 
         const { password: _, ...userSafe } = user;
-        const token = generateToken({ id: userSafe.id, email: userSafe.email });  // use jwt.js generateToken
+        const token = generateToken({ id: userSafe.id, email: userSafe.email, role: userSafe.role });  // include role in JWT
         res.json({ user: userSafe, token });
     } catch (err) {
         console.error(err);

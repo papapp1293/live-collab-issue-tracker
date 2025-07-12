@@ -101,7 +101,23 @@ router.get('/:id', async (req, res) => {
 // Partial update (title, description, assigned_to, status)
 router.patch('/:id', async (req, res) => {
   try {
-    const updated = await IssueModel.updateIssue(req.params.id, req.body);
+    const { assigned_developer, assigned_tester, ...otherUpdates } = req.body;
+
+    // Check if user is trying to update assignments
+    if ((assigned_developer !== undefined || assigned_tester !== undefined) && req.user?.role !== 'manager') {
+      return res.status(403).json({ error: 'Only managers can assign developers and testers' });
+    }
+
+    // Build the update object
+    const updates = { ...otherUpdates };
+
+    // Only include assignment fields if user is a manager
+    if (req.user?.role === 'manager') {
+      if (assigned_developer !== undefined) updates.assigned_developer = assigned_developer;
+      if (assigned_tester !== undefined) updates.assigned_tester = assigned_tester;
+    }
+
+    const updated = await IssueModel.updateIssue(req.params.id, updates);
     if (!updated) return res.status(404).json({ error: 'Issue not found' });
     res.json(updated);
   } catch (err) {
@@ -177,28 +193,6 @@ router.post('/:id/generate-summary', async (req, res) => {
   } catch (err) {
     console.error('Error in generate-summary route:', err);
     res.status(500).json({ error: 'Failed to generate AI summary: ' + err.message });
-  }
-});
-
-// Manager routes for assignment
-// Get all users by role for assignment dropdowns
-router.get('/users/:role', async (req, res) => {
-  try {
-    // Only managers can access this
-    if (req.user?.role !== 'manager') {
-      return res.status(403).json({ error: 'Only managers can access user lists' });
-    }
-
-    const { role } = req.params;
-    if (!['developer', 'tester'].includes(role)) {
-      return res.status(400).json({ error: 'Invalid role. Must be developer or tester' });
-    }
-
-    const users = await UserModel.getUsersByRole(role);
-    res.json(users);
-  } catch (err) {
-    console.error('Error fetching users by role:', err);
-    res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
 

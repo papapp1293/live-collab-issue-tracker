@@ -107,6 +107,61 @@ export const register = async (userData) => {
   return res.json();
 };
 
+// Fetch users by role with comprehensive debugging (centralized to avoid duplication)
+export const fetchUsersByRole = async (role, debugContext = 'unknown') => {
+  console.log(`🔍 [${debugContext}] fetchUsersByRole called with role: "${role}"`);
+
+  try {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    console.log(`📋 [${debugContext}] Current user:`, {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    });
+    console.log(`🔑 [${debugContext}] Token exists:`, !!token);
+    console.log(`🎯 [${debugContext}] Making request to: ${BASE_URL}/api/users/role/${role}`);
+
+    const res = await fetch(`${BASE_URL}/api/users/role/${role}`, {
+      headers: getHeaders(),
+    });
+
+    console.log(`📡 [${debugContext}] Response status:`, res.status);
+    console.log(`📡 [${debugContext}] Response ok:`, res.ok);
+
+    if (res.ok) {
+      const data = await res.json();
+      console.log(`✅ [${debugContext}] Successfully fetched ${data.length} ${role}s:`, data);
+      return data;
+    } else {
+      const errorText = await res.text();
+      console.error(`❌ [${debugContext}] Failed to fetch ${role}s:`, {
+        status: res.status,
+        statusText: res.statusText,
+        error: errorText
+      });
+
+      // Try to parse as JSON for better error details
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.error(`❌ [${debugContext}] Parsed error:`, errorJson);
+      } catch (e) {
+        console.error(`❌ [${debugContext}] Raw error response:`, errorText);
+      }
+
+      throw new Error(`Failed to fetch ${role}s: ${res.statusText}`);
+    }
+  } catch (error) {
+    console.error(`💥 [${debugContext}] Exception in fetchUsersByRole:`, {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    throw error; // Re-throw to maintain error handling in components
+  }
+};
+
 // Generate AI summary for an existing issue
 export const generateAISummary = async (issueId) => {
   const res = await fetch(`${BASE_URL}/api/issues/${issueId}/generate-summary`, {

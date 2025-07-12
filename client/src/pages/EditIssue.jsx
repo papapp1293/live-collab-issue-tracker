@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { fetchUsers, fetchIssues, updateIssue } from '../services/api';
+import { fetchIssues, updateIssue, fetchUsersByRole } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
 
 export default function EditIssue() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     const [issue, setIssue] = useState(null);
-    const [users, setUsers] = useState([]);
+    const [developers, setDevelopers] = useState([]);
+    const [testers, setTesters] = useState([]);
     const [error, setError] = useState(null);
+
+    const isManager = user?.role === 'manager';
 
     useEffect(() => {
         fetchIssues().then((issues) => {
@@ -18,8 +23,13 @@ export default function EditIssue() {
             else setError('Issue not found');
         });
 
-        fetchUsers().then(setUsers).catch(() => setError('Failed to load users'));
-    }, [id]);
+        fetchUsersByRole('developer', 'EditIssue').then(setDevelopers).catch(() => {
+            if (isManager) setError('Failed to load developers');
+        });
+        fetchUsersByRole('tester', 'EditIssue').then(setTesters).catch(() => {
+            if (isManager) setError('Failed to load testers');
+        });
+    }, [id, isManager]);
 
     const handleChange = (e) => {
         setIssue({ ...issue, [e.target.name]: e.target.value });
@@ -28,12 +38,19 @@ export default function EditIssue() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const updatedIssue = await updateIssue(id, {
+            const updateData = {
                 title: issue.title,
                 description: issue.description,
-                assigned_to: parseInt(issue.assigned_to) || null,
                 status: issue.status,
-            });
+            };
+
+            // Only include assignment fields if user is a manager
+            if (isManager) {
+                updateData.assigned_developer = parseInt(issue.assigned_developer) || null;
+                updateData.assigned_tester = parseInt(issue.assigned_tester) || null;
+            }
+
+            const updatedIssue = await updateIssue(id, updateData);
 
             // Emit Socket event for real-time updates
             socketService.emitIssueUpdated({ ...updatedIssue, id: parseInt(id) });
@@ -89,24 +106,45 @@ export default function EditIssue() {
                     <option value="closed">Closed</option>
                 </select>
 
-                <label htmlFor="assigned_to">Assign To</label>
+                <label htmlFor="assigned_developer">Assign Developer</label>
                 <select
-                    id="assigned_to"
-                    name="assigned_to"
-                    value={issue.assigned_to || ''}
+                    id="assigned_developer"
+                    name="assigned_developer"
+                    value={issue.assigned_developer || ''}
                     onChange={handleChange}
+                    disabled={!isManager}
                 >
-                    <option value="">Not Assigned</option>
-                    {users.map((user) => (
+                    <option value="">No Developer Assigned</option>
+                    {developers.map((user) => (
                         <option key={user.id} value={user.id}>
                             {user.name} ({user.email})
                         </option>
                     ))}
                 </select>
+                {!isManager && <small className="text-muted">Only managers can assign developers</small>}
 
-                <button type="submit" className="button primary mt-3">
-                    Update Issue
-                </button>
+                <label htmlFor="assigned_tester">Assign Tester</label>
+                <select
+                    id="assigned_tester"
+                    name="assigned_tester"
+                    value={issue.assigned_tester || ''}
+                    onChange={handleChange}
+                    disabled={!isManager}
+                >
+                    <option value="">No Tester Assigned</option>
+                    {testers.map((user) => (
+                        <option key={user.id} value={user.id}>
+                            {user.name} ({user.email})
+                        </option>
+                    ))}
+                </select>
+                {!isManager && <small className="text-muted">Only managers can assign testers</small>}
+
+                <div className="mt-3">
+                    <button type="submit" className="button primary">
+                        Update Issue
+                    </button>
+                </div>
             </form>
         </div>
     );

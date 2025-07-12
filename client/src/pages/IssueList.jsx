@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchIssues, deleteIssue } from '../services/api';
+import { fetchIssues, deleteIssue, fetchUsersByRole } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import socketService from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
@@ -109,28 +109,10 @@ export default function IssueList() {
   // Fetch developers and testers for managers
   useEffect(() => {
     if (user?.role === 'manager') {
-      fetchUsersByRole('developer').then(setDevelopers).catch(console.error);
-      fetchUsersByRole('tester').then(setTesters).catch(console.error);
+      fetchUsersByRole('developer', 'IssueList').then(setDevelopers).catch(console.error);
+      fetchUsersByRole('tester', 'IssueList').then(setTesters).catch(console.error);
     }
   }, [user?.role]);
-
-  const fetchUsersByRole = async (role) => {
-    try {
-      const response = await fetch(`/api/issues/users/${role}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (response.ok) {
-        return await response.json();
-      }
-      return [];
-    } catch (err) {
-      console.error(`Error fetching ${role}s:`, err);
-      return [];
-    }
-  };
 
   const toggleDeleteMode = () => {
     setDeleteMode(!deleteMode);
