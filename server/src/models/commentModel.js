@@ -30,7 +30,7 @@ const CommentModel = {
         return result.rows;
     },
 
-    // Get replies to a specific comment
+    // Get replies to a specific comment (recursive for unlimited nesting)
     getRepliesByCommentId: async (parent_comment_id) => {
         const result = await db.query(`
       SELECT c.*, 
@@ -42,7 +42,18 @@ const CommentModel = {
       WHERE c.parent_comment_id = $1 AND c.is_deleted = FALSE
       ORDER BY c.created_at ASC
     `, [parent_comment_id]);
-        return result.rows;
+
+        // Recursively get replies for each reply
+        const replies = [];
+        for (const reply of result.rows) {
+            const nestedReplies = await CommentModel.getRepliesByCommentId(reply.id);
+            replies.push({
+                ...reply,
+                replies: nestedReplies || []
+            });
+        }
+
+        return replies;
     },
 
     // Get comment by ID with user information
