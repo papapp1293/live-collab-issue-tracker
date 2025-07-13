@@ -9,6 +9,7 @@ const morgan = require('morgan');
 const userRoutes = require('./routes/userRoutes');
 const issueRoutes = require('./routes/issueRoutes');
 const authRoutes = require('./routes/authRoutes');
+const commentRoutes = require('./routes/commentRoutes');
 const authenticateToken = require('./middleware/authMiddleware');
 
 dotenv.config();
@@ -26,6 +27,7 @@ app.use('/api/auth', authRoutes);
 // Private Routes
 app.use('/api/users', authenticateToken, userRoutes);
 app.use('/api/issues', authenticateToken, issueRoutes);
+app.use('/api/comments', authenticateToken, commentRoutes);
 
 // Default error handling
 app.use((req, res) => {

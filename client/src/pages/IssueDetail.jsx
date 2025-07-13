@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchIssues, fetchUsers, generateAISummary } from '../services/api';
+import Comments from '../components/Comments';
 
 export default function IssueDetail() {
     const { id } = useParams();
@@ -153,6 +154,12 @@ export default function IssueDetail() {
                 <Link to="/issues" className="button secondary small">
                     Back to Issues
                 </Link>
+            </div>
+
+            {/* Comments section */}
+            <div className="mt-5">
+                <h3 className="header text-lg mb-3">Comments</h3>
+                <Comments issueId={issue.id} />
             </div>
         </div>
     );

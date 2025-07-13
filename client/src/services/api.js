@@ -168,3 +168,59 @@ export const generateAISummary = async (issueId) => {
   if (!res.ok) throw new Error('Failed to generate AI summary');
   return res.json();
 };
+
+// ===== COMMENT API FUNCTIONS =====
+
+// Get all comments for an issue (threaded)
+export const fetchComments = async (issueId) => {
+  const res = await fetch(`${BASE_URL}/api/comments/issue/${issueId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch comments');
+  return res.json();
+};
+
+// Create a new comment
+export const createComment = async (issueId, content, parentCommentId = null) => {
+  const res = await fetch(`${BASE_URL}/api/comments`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      issue_id: issueId,
+      content,
+      parent_comment_id: parentCommentId,
+    }),
+  });
+  if (!res.ok) throw new Error('Failed to create comment');
+  return res.json();
+};
+
+// Update a comment
+export const updateComment = async (commentId, content) => {
+  const res = await fetch(`${BASE_URL}/api/comments/${commentId}`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) throw new Error('Failed to update comment');
+  return res.json();
+};
+
+// Delete a comment
+export const deleteComment = async (commentId) => {
+  const res = await fetch(`${BASE_URL}/api/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to delete comment');
+  return res.json();
+};
+
+// Get comment count for an issue
+export const getCommentCount = async (issueId) => {
+  const res = await fetch(`${BASE_URL}/api/comments/issue/${issueId}/count`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch comment count');
+  return res.json();
+};

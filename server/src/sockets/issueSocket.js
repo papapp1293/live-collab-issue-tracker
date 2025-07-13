@@ -79,6 +79,34 @@ function setupSocket(io) {
       });
     });
 
+    // Handle comment events
+    socket.on('comment:created', (commentData) => {
+      console.log('💬 New comment created for issue:', commentData.issue_id);
+      // Broadcast to all users in issues room
+      socket.to('issues').emit('comment:created', {
+        ...commentData,
+        createdBy: socket.userEmail
+      });
+    });
+
+    socket.on('comment:updated', (commentData) => {
+      console.log('💬 Comment updated:', commentData.id);
+      // Broadcast to all users in issues room
+      socket.to('issues').emit('comment:updated', {
+        ...commentData,
+        updatedBy: socket.userEmail
+      });
+    });
+
+    socket.on('comment:deleted', (commentData) => {
+      console.log('💬 Comment deleted:', commentData.id);
+      // Broadcast to all users in issues room
+      socket.to('issues').emit('comment:deleted', {
+        ...commentData,
+        deletedBy: socket.userEmail
+      });
+    });
+
     socket.on('disconnect', () => {
       console.log(`❌ User disconnected: ${socket.userEmail}`);
       // Notify others that user went offline

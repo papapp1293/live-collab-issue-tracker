@@ -106,6 +106,43 @@ class SocketService {
         }
     }
 
+    // Comment events
+    emitCommentCreated(commentData) {
+        if (this.socket) {
+            this.socket.emit('comment:created', commentData);
+        }
+    }
+
+    emitCommentUpdated(commentData) {
+        if (this.socket) {
+            this.socket.emit('comment:updated', commentData);
+        }
+    }
+
+    emitCommentDeleted(commentData) {
+        if (this.socket) {
+            this.socket.emit('comment:deleted', commentData);
+        }
+    }
+
+    onCommentCreated(callback) {
+        if (this.socket) {
+            this.socket.on('comment:created', callback);
+        }
+    }
+
+    onCommentUpdated(callback) {
+        if (this.socket) {
+            this.socket.on('comment:updated', callback);
+        }
+    }
+
+    onCommentDeleted(callback) {
+        if (this.socket) {
+            this.socket.on('comment:deleted', callback);
+        }
+    }
+
     // Remove listeners
     removeListener(event) {
         if (this.socket) {
