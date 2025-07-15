@@ -158,7 +158,6 @@ export default function IssueDetail() {
 
             {/* Comments section */}
             <div className="mt-5">
-                <h3 className="header text-lg mb-3">Comments</h3>
                 <Comments issueId={issue.id} />
             </div>
         </div>

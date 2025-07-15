@@ -90,6 +90,7 @@ export default function EditIssue() {
                     name="description"
                     value={issue.description}
                     onChange={handleChange}
+                    rows="40"
                     required
                 />
 

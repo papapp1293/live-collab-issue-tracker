@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createIssue, fetchUsersByRole } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,8 +25,8 @@ export default function CreateIssue() {
     // Only managers can assign during creation, others create unassigned issues
     if (user?.role === 'manager') {
       fetchUsersByRole('developer')
-      .then(setDevelopers)
-      .catch(() => setError('Failed to load developers'));
+        .then(setDevelopers)
+        .catch(() => setError('Failed to load developers'));
 
       fetchUsersByRole('tester')
         .then(setTesters)
@@ -137,6 +137,7 @@ export default function CreateIssue() {
           name="description"
           value={issue.description}
           onChange={handleChange}
+          rows="40"
           required
         />
 
