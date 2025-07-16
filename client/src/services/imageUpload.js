@@ -1,4 +1,4 @@
-import { uploadAttachment } from './api';
+import { uploadAttachment, getAttachmentUrl } from './api';
 
 /**
  * Service for handling image uploads and attachment management
@@ -9,20 +9,28 @@ export const imageUploadService = {
      * @param {Array} pastedImages - Array of {file, imageUrl} objects
      * @param {number} issueId - ID of the issue (required)
      * @param {number} commentId - ID of the comment (optional, for comment attachments)
-     * @returns {Promise<Array>} Array of upload results
+     * @returns {Promise<Array>} Array of upload results with blob URL mapping
      */
     async uploadPastedImages(pastedImages, issueId, commentId = null) {
         const uploadPromises = pastedImages.map(async (imageData) => {
             try {
                 const result = await uploadAttachment(imageData.file, issueId, commentId);
-                // Clean up the object URL to prevent memory leaks
-                URL.revokeObjectURL(imageData.imageUrl);
-                return { success: true, result };
+                // Handle different response structures
+                const attachmentId = result.attachment?.id || result.id;
+                if (!attachmentId) {
+                    throw new Error('No attachment ID returned from server');
+                }
+                // Don't revoke the URL yet - we need it for replacement
+                return {
+                    success: true,
+                    result,
+                    blobUrl: imageData.imageUrl,
+                    serverUrl: getAttachmentUrl(attachmentId)
+                };
             } catch (error) {
-                console.error('Failed to upload image:', error);
-                // Clean up the object URL even on failure
+                // Clean up the object URL on failure
                 URL.revokeObjectURL(imageData.imageUrl);
-                return { success: false, error, file: imageData.file };
+                return { success: false, error, file: imageData.file, blobUrl: imageData.imageUrl };
             }
         });
 
@@ -30,13 +38,32 @@ export const imageUploadService = {
     },
 
     /**
-     * Clean up object URLs to prevent memory leaks
-     * @param {Array} pastedImages - Array of {file, imageUrl} objects
+     * Replace blob URLs in HTML content with server URLs
+     * @param {string} htmlContent - HTML content containing blob URLs
+     * @param {Array} uploadResults - Results from uploadPastedImages
+     * @returns {string} Updated HTML content with server URLs
      */
-    cleanupImageUrls(pastedImages) {
-        pastedImages.forEach(imageData => {
-            if (imageData.imageUrl) {
-                URL.revokeObjectURL(imageData.imageUrl);
+    replaceBlobUrlsWithServerUrls(htmlContent, uploadResults) {
+        let updatedContent = htmlContent;
+
+        uploadResults.forEach(result => {
+            if (result.success && result.blobUrl && result.serverUrl) {
+                // Replace the blob URL with the server URL
+                updatedContent = updatedContent.replace(result.blobUrl, result.serverUrl);
+            }
+        });
+
+        return updatedContent;
+    },
+
+    /**
+     * Clean up object URLs to prevent memory leaks
+     * @param {Array} uploadResults - Results from uploadPastedImages
+     */
+    cleanupImageUrls(uploadResults) {
+        uploadResults.forEach(result => {
+            if (result.blobUrl) {
+                URL.revokeObjectURL(result.blobUrl);
             }
         });
     }

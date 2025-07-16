@@ -10,7 +10,7 @@
     "seed-users": "node src/utils/seedUsersOnly.js",
     "seed-issues": "node src/utils/seedIssuesOnly.js",
     "check-costs": "node src/utils/checkCosts.js",
-    "setup-comments": "node setupComments.js"
+    "setup-comments": "node src/utils/setupComments.js"
   },
   "keywords": [],
   "author": "",

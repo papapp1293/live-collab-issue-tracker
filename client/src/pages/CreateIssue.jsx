@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { createIssue, fetchUsersByRole } from '../services/api';
+import { createIssue, fetchUsersByRole, updateIssue } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
 import { useImagePaste } from '../hooks/useImagePaste';
@@ -64,9 +64,7 @@ export default function CreateIssue() {
         description: issue.description || descriptionContent, // Use HTML content
         assigned_developer: issue.assigned_developer ? parseInt(issue.assigned_developer) : null,
         assigned_tester: issue.assigned_tester ? parseInt(issue.assigned_tester) : null,
-      });
-
-      // Upload any pasted images after issue creation
+      });      // Upload any pasted images after issue creation
       if (pastedImages.length > 0) {
         setUploading(true);
         const uploadResults = await imageUploadService.uploadPastedImages(pastedImages, newIssue.id);
@@ -77,6 +75,20 @@ export default function CreateIssue() {
           console.warn('Some images failed to upload:', failedUploads);
         }
 
+        // Replace blob URLs with server URLs in the issue description
+        const successfulUploads = uploadResults.filter(result => result.success);
+        if (successfulUploads.length > 0) {
+          const updatedDescription = imageUploadService.replaceBlobUrlsWithServerUrls(
+            descriptionRef.current.innerHTML,
+            successfulUploads
+          );
+
+          // Update the issue on the server with corrected URLs
+          await updateIssue(newIssue.id, { description: updatedDescription });
+        }
+
+        // Clean up blob URLs
+        imageUploadService.cleanupImageUrls(uploadResults);
         clearPastedImages();
         setUploading(false);
       }
@@ -119,7 +131,10 @@ export default function CreateIssue() {
           <h2 className="title text-center mb-3">✅ Issue Created Successfully!</h2>
           <div className="mb-3">
             <h3>{createdIssue.title}</h3>
-            <p className="text-muted">{createdIssue.description}</p>
+            <div
+              className="text-muted"
+              dangerouslySetInnerHTML={{ __html: createdIssue.description }}
+            />
           </div>
 
           {createdIssue.ai_summary && (

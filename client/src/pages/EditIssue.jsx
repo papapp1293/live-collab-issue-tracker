@@ -79,6 +79,20 @@ export default function EditIssue() {
                     console.warn('Some images failed to upload:', failedUploads);
                 }
 
+                // Replace blob URLs with server URLs in the issue description
+                const successfulUploads = uploadResults.filter(result => result.success);
+                if (successfulUploads.length > 0) {
+                    const updatedDescription = imageUploadService.replaceBlobUrlsWithServerUrls(
+                        descriptionRef.current.innerHTML,
+                        successfulUploads
+                    );
+
+                    // Update the issue again with corrected URLs
+                    await updateIssue(id, { description: updatedDescription });
+                }
+
+                // Clean up blob URLs
+                imageUploadService.cleanupImageUrls(uploadResults);
                 clearPastedImages();
                 setUploading(false);
             }

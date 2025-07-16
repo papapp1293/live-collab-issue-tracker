@@ -19,6 +19,7 @@ class AttachmentController {
             const attachmentData = {
                 issue_id: parseInt(issue_id),
                 comment_id: comment_id ? parseInt(comment_id) : null,
+                user_id: req.user?.id || req.user?.userId,
                 file_path: req.file.path,
                 file_name: req.file.originalname,
                 file_type: req.file.mimetype
@@ -32,7 +33,7 @@ class AttachmentController {
             });
         } catch (error) {
             console.error('Error uploading file:', error);
-            res.status(500).json({ error: 'Failed to upload file' });
+            res.status(500).json({ error: 'Failed to upload file', details: error.message });
         }
     }
 
@@ -77,9 +78,7 @@ class AttachmentController {
             console.error('Error deleting attachment:', error);
             res.status(500).json({ error: 'Failed to delete attachment' });
         }
-    }
-
-    static async serve(req, res) {
+    } static async serve(req, res) {
         try {
             const { id } = req.params;
             const query = 'SELECT * FROM attachments WHERE id = $1';
@@ -96,8 +95,8 @@ class AttachmentController {
                 return res.status(404).json({ error: 'File not found on disk' });
             }
 
-            res.setHeader('Content-Type', attachment.file_type);
-            res.setHeader('Content-Disposition', `inline; filename="${attachment.file_name}"`);
+            res.setHeader('Content-Type', attachment.mime_type);
+            res.setHeader('Content-Disposition', `inline; filename="${attachment.filename}"`);
             res.sendFile(filePath);
         } catch (error) {
             console.error('Error serving file:', error);

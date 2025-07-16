@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchIssues, fetchUsers, generateAISummary } from '../services/api';
+import { fetchIssue, fetchUsers, generateAISummary } from '../services/api';
 import Comments from '../components/Comments';
 
 export default function IssueDetail() {
@@ -12,11 +12,13 @@ export default function IssueDetail() {
     const [aiError, setAiError] = useState(null);
 
     useEffect(() => {
-        fetchIssues().then((allIssues) => {
-            const found = allIssues.find((i) => i.id === parseInt(id));
-            if (found) setIssue(found);
-            else setError('Issue not found');
-        });
+        fetchIssue(id).then((foundIssue) => {
+            if (foundIssue) {
+                setIssue(foundIssue);
+            } else {
+                setError('Issue not found');
+            }
+        }).catch(() => setError('Failed to load issue'));
 
         fetchUsers()
             .then(setUsers)
@@ -64,9 +66,10 @@ export default function IssueDetail() {
                 </Link>
             </div>
 
-            <p className="mb-3">
-                <strong>Description: </strong> {issue.description}
-            </p>
+            <div className="mb-3">
+                <strong>Description: </strong>
+                <div dangerouslySetInnerHTML={{ __html: issue.description }} />
+            </div>
 
             {issue.ai_summary && (
                 <div className="card p mb-3" style={{ backgroundColor: '#f8f9fa', border: '1px solid #e9ecef' }}>

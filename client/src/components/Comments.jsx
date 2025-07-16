@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchComments, createComment, updateComment, deleteComment, uploadAttachment } from '../services/api';
+import { fetchComments, createComment, updateComment, deleteComment } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
+import { useImagePaste } from '../hooks/useImagePaste';
+import { imageUploadService } from '../services/imageUpload';
 
 const Comment = ({ comment, onReply, onEdit, onDelete, level = 0 }) => {
     const { user } = useAuth();
@@ -43,9 +45,28 @@ const Comment = ({ comment, onReply, onEdit, onDelete, level = 0 }) => {
 
             // Upload any pasted images for the reply
             if (replyPastedImages.length > 0) {
-                for (const imageFile of replyPastedImages) {
-                    await uploadAttachment(imageFile, comment.issue_id, reply.id);
+                const uploadResults = await imageUploadService.uploadPastedImages(replyPastedImages, comment.issue_id, reply.id);
+
+                // Check for failed uploads
+                const failedUploads = uploadResults.filter(result => !result.success);
+                if (failedUploads.length > 0) {
+                    console.warn('Some images failed to upload:', failedUploads);
                 }
+
+                // Replace blob URLs with server URLs in the reply content
+                const successfulUploads = uploadResults.filter(result => result.success);
+                if (successfulUploads.length > 0) {
+                    const updatedContent = imageUploadService.replaceBlobUrlsWithServerUrls(
+                        replyContent.trim(),
+                        successfulUploads
+                    );
+
+                    // Update the reply with corrected URLs
+                    await updateComment(reply.id, updatedContent);
+                }
+
+                // Clean up blob URLs
+                imageUploadService.cleanupImageUrls(uploadResults);
                 setReplyPastedImages([]);
             }
 
@@ -224,9 +245,11 @@ const Comment = ({ comment, onReply, onEdit, onDelete, level = 0 }) => {
                         </div>
                     </div>
                 ) : (
-                    <p className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>
-                        {comment.content}
-                    </p>
+                    <div
+                        className="mb-2"
+                        style={{ whiteSpace: 'pre-wrap' }}
+                        dangerouslySetInnerHTML={{ __html: comment.content }}
+                    />
                 )}
 
                 {!isEditing && (
@@ -398,9 +421,28 @@ export default function Comments({ issueId }) {
 
             // Upload any pasted images for the new comment
             if (pastedImages.length > 0) {
-                for (const imageFile of pastedImages) {
-                    await uploadAttachment(imageFile, parseInt(issueId), comment.id);
+                const uploadResults = await imageUploadService.uploadPastedImages(pastedImages, parseInt(issueId), comment.id);
+
+                // Check for failed uploads
+                const failedUploads = uploadResults.filter(result => !result.success);
+                if (failedUploads.length > 0) {
+                    console.warn('Some images failed to upload:', failedUploads);
                 }
+
+                // Replace blob URLs with server URLs in the comment content
+                const successfulUploads = uploadResults.filter(result => result.success);
+                if (successfulUploads.length > 0) {
+                    const updatedContent = imageUploadService.replaceBlobUrlsWithServerUrls(
+                        newComment.trim(),
+                        successfulUploads
+                    );
+
+                    // Update the comment with corrected URLs
+                    await updateComment(comment.id, updatedContent);
+                }
+
+                // Clean up blob URLs
+                imageUploadService.cleanupImageUrls(uploadResults);
                 setPastedImages([]);
             }
 
@@ -495,6 +537,7 @@ export default function Comments({ issueId }) {
         });
 
         await loadComments();
+        return reply; // Return the created reply so it can be used for file uploads
     };
 
     const handleEdit = async (commentId, content) => {

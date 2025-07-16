@@ -47,6 +47,15 @@ export const fetchMyIssues = async () => {
   return res.json();
 };
 
+// Fetch a single issue by ID
+export const fetchIssue = async (id) => {
+  const res = await fetch(`${BASE_URL}/api/issues/${id}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch issue');
+  return res.json();
+};
+
 // Create a new issue
 export const createIssue = async (issueData) => {
   const res = await fetch(`${BASE_URL}/api/issues`, {
@@ -242,7 +251,12 @@ export const uploadAttachment = async (file, issueId, commentId = null) => {
     },
     body: formData,
   });
-  if (!res.ok) throw new Error('Failed to upload attachment');
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to upload attachment: ${res.status} ${res.statusText} - ${errorText}`);
+  }
+
   return res.json();
 };
 

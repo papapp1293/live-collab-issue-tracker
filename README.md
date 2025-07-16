@@ -6,6 +6,7 @@ A real-time collaborative issue tracking application with AI-powered features, b
 
 - **Real-time Collaboration**: Live updates using Socket.IO
 - **AI-Powered Summaries**: Automatic issue summarization using OpenAI GPT
+- **Image Upload & Paste**: Direct image pasting from clipboard into descriptions and comments
 - **User Authentication**: Secure JWT-based authentication
 - **Developer Dashboard**: Personalized issue management
 - **Issue Management**: Create, edit, assign, and track issues
@@ -27,6 +28,7 @@ A real-time collaborative issue tracking application with AI-powered features, b
 - JWT authentication
 - OpenAI integration for AI features
 - bcrypt for password hashing
+- Multer for file upload handling
 
 ## 📋 Prerequisites
 
@@ -122,6 +124,37 @@ Cost tracking includes:
 - Average cost per request  
 - Real-time cost estimates in server logs
 - API endpoint: `GET /api/issues/ai/stats` for programmatic access
+
+## 📸 Image Upload Feature
+
+### Overview
+Comprehensive image upload functionality that allows users to paste screenshots/images directly into issue descriptions and comments using Ctrl+V.
+
+### Key Capabilities
+- **Direct Clipboard Pasting**: Paste images from clipboard using Ctrl+V
+- **Real-time Preview**: Images appear immediately during editing
+- **Server Storage**: Images uploaded to server with unique filenames
+- **HTML Rendering**: Images display properly in all views after submission
+- **Universal Support**: Works in issue descriptions (create & edit), comments, and replies
+
+### How to Use
+1. **Create/Edit Issue**: Open issue creation or edit form
+2. **Paste Image**: Use Ctrl+V to paste image from clipboard
+3. **Immediate Preview**: Image appears instantly in the editor
+4. **Submit**: Image is uploaded and permanently stored
+5. **View**: Image displays in issue details, lists, and dashboards
+
+### Technical Implementation
+- **Frontend**: React hooks and services for clipboard handling
+- **Backend**: Multer-based file upload with PostgreSQL storage
+- **Security**: File type validation, size limits, authentication required
+- **Database**: Dedicated attachments table with proper constraints
+
+### File Specifications
+- **Supported Formats**: All image types (PNG, JPG, GIF, etc.)
+- **Maximum Size**: 5MB per image
+- **Storage Location**: `server/uploads/` directory
+- **Access**: Images served via `/api/attachments/serve/{id}` endpoint
 
 ## 📊 Database Management
 

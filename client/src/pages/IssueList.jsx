@@ -299,7 +299,10 @@ export default function IssueList() {
                     <strong>🤖 AI Summary:</strong> {issue.ai_summary}
                   </div>
                 ) : (
-                  <p className="text-muted">{issue.description}</p>
+                  <div
+                    className="text-muted"
+                    dangerouslySetInnerHTML={{ __html: issue.description }}
+                  />
                 )}
 
                 <div className="flex gap wrap mt-1">
