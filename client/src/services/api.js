@@ -224,3 +224,53 @@ export const getCommentCount = async (issueId) => {
   if (!res.ok) throw new Error('Failed to fetch comment count');
   return res.json();
 };
+
+// Attachment API functions
+export const uploadAttachment = async (file, issueId, commentId = null) => {
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('issue_id', issueId);
+  if (commentId) {
+    formData.append('comment_id', commentId);
+  }
+
+  const res = await fetch(`${BASE_URL}/api/attachments/upload`, {
+    method: 'POST',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+    },
+    body: formData,
+  });
+  if (!res.ok) throw new Error('Failed to upload attachment');
+  return res.json();
+};
+
+export const getAttachmentsByIssue = async (issueId) => {
+  const res = await fetch(`${BASE_URL}/api/attachments/issue/${issueId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch attachments');
+  return res.json();
+};
+
+export const getAttachmentsByComment = async (commentId) => {
+  const res = await fetch(`${BASE_URL}/api/attachments/comment/${commentId}`, {
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch attachments');
+  return res.json();
+};
+
+export const deleteAttachment = async (attachmentId) => {
+  const res = await fetch(`${BASE_URL}/api/attachments/${attachmentId}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to delete attachment');
+  return res.json();
+};
+
+export const getAttachmentUrl = (attachmentId) => {
+  return `${BASE_URL}/api/attachments/serve/${attachmentId}`;
+};

@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createIssue, fetchUsersByRole } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
+import { useImagePaste } from '../hooks/useImagePaste';
+import { imageUploadService } from '../services/imageUpload';
+import ContentEditor from '../components/ContentEditor';
 
 export default function CreateIssue() {
   const navigate = useNavigate();
@@ -20,6 +23,13 @@ export default function CreateIssue() {
   const [error, setError] = useState(null);
   const [createdIssue, setCreatedIssue] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const descriptionRef = useRef(null);
+
+  // Use the image paste hook
+  const { pastedImages, clearPastedImages } = useImagePaste(descriptionRef, () => {
+    updateDescriptionFromEditor();
+  });
 
   useEffect(() => {
     // Only managers can assign during creation, others create unassigned issues
@@ -40,13 +50,36 @@ export default function CreateIssue() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate description content
+    const descriptionContent = descriptionRef.current?.textContent?.trim() || '';
+    if (!descriptionContent) {
+      setError('Description is required');
+      return;
+    }
+
     try {
       const newIssue = await createIssue({
         title: issue.title,
-        description: issue.description,
+        description: issue.description || descriptionContent, // Use HTML content
         assigned_developer: issue.assigned_developer ? parseInt(issue.assigned_developer) : null,
         assigned_tester: issue.assigned_tester ? parseInt(issue.assigned_tester) : null,
       });
+
+      // Upload any pasted images after issue creation
+      if (pastedImages.length > 0) {
+        setUploading(true);
+        const uploadResults = await imageUploadService.uploadPastedImages(pastedImages, newIssue.id);
+
+        // Check for any failed uploads
+        const failedUploads = uploadResults.filter(result => !result.success);
+        if (failedUploads.length > 0) {
+          console.warn('Some images failed to upload:', failedUploads);
+        }
+
+        clearPastedImages();
+        setUploading(false);
+      }
 
       // Show success message with AI summary if available
       setCreatedIssue(newIssue);
@@ -62,6 +95,18 @@ export default function CreateIssue() {
     } catch (err) {
       console.error(err);
       setError('Failed to create issue');
+      setUploading(false);
+    }
+  };
+
+  const updateDescriptionFromEditor = () => {
+    if (descriptionRef.current) {
+      // Convert contentEditable content to HTML, preserving structure
+      const content = descriptionRef.current.innerHTML;
+      setIssue(prev => ({
+        ...prev,
+        description: content
+      }));
     }
   };
 
@@ -131,15 +176,20 @@ export default function CreateIssue() {
           required
         />
 
-        <label htmlFor="description">Description</label>
-        <textarea
-          id="description"
-          name="description"
-          value={issue.description}
-          onChange={handleChange}
-          rows="40"
-          required
+        <label htmlFor="description">Description *</label>
+        <ContentEditor
+          ref={descriptionRef}
+          placeholder="Describe the issue... (You can paste images directly here)"
+          minHeight="200px"
+          maxHeight="400px"
+          onContentChange={updateDescriptionFromEditor}
         />
+
+        {pastedImages.length > 0 && (
+          <div className="mb-3">
+            <p className="text-sm text-muted">Images will be uploaded when issue is created.</p>
+          </div>
+        )}
 
         {user?.role === 'manager' && (
           <>
@@ -182,8 +232,8 @@ export default function CreateIssue() {
           </div>
         )}
 
-        <button type="submit" className="button primary mt-3">
-          Create Issue
+        <button type="submit" className="button primary mt-3" disabled={uploading}>
+          {uploading ? 'Creating Issue...' : 'Create Issue'}
         </button>
       </form>
     </div>

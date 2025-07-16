@@ -6,6 +6,8 @@ require('dotenv').config();
 
 const DB_NAME = 'live_collab_db';
 const SCHEMA_FILE = path.join(__dirname, '../../db/schema.sql');
+const COMMENTS_SCHEMA_FILE = path.join(__dirname, '../../db/comments-schema.sql');
+const ATTACHMENTS_SCHEMA_FILE = path.join(__dirname, '../../db/attachments-schema.sql');
 
 async function setupDatabase() {
   // Connect to default "postgres" DB to manage DB creation
@@ -35,6 +37,18 @@ async function setupDatabase() {
     const schemaSql = fs.readFileSync(SCHEMA_FILE, 'utf8'); console.log('Running schema.sql...');
     await pool.query(schemaSql);
     console.log('schema.sql executed.');
+
+    // Run comments schema
+    const commentsSchemaSql = fs.readFileSync(COMMENTS_SCHEMA_FILE, 'utf8');
+    console.log('Running comments-schema.sql...');
+    await pool.query(commentsSchemaSql);
+    console.log('comments-schema.sql executed.');
+
+    // Run attachments schema
+    const attachmentsSchemaSql = fs.readFileSync(ATTACHMENTS_SCHEMA_FILE, 'utf8');
+    console.log('Running attachments-schema.sql...');
+    await pool.query(attachmentsSchemaSql);
+    console.log('attachments-schema.sql executed.');
 
     // Check if ai_summary column exists
     console.log('Checking ai_summary column...');

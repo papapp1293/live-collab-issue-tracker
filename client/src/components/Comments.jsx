@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { fetchComments, createComment, updateComment, deleteComment } from '../services/api';
+import { useState, useEffect, useRef } from 'react';
+import { fetchComments, createComment, updateComment, deleteComment, uploadAttachment } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
 
@@ -11,6 +11,9 @@ const Comment = ({ comment, onReply, onEdit, onDelete, level = 0 }) => {
     const [replyContent, setReplyContent] = useState('');
     const [submittingReply, setSubmittingReply] = useState(false);
     const [updatingComment, setUpdatingComment] = useState(false);
+    const [replyPastedImages, setReplyPastedImages] = useState([]);
+    const [replyUploading, setReplyUploading] = useState(false);
+    const replyEditorRef = useRef(null);
 
     const canEdit = user?.id === comment.user_id;
     const canDelete = user?.id === comment.user_id || user?.role === 'manager';
@@ -34,8 +37,18 @@ const Comment = ({ comment, onReply, onEdit, onDelete, level = 0 }) => {
         if (!replyContent.trim()) return;
 
         setSubmittingReply(true);
+        setReplyUploading(true);
         try {
-            await onReply(comment.id, replyContent.trim());
+            const reply = await onReply(comment.id, replyContent.trim());
+
+            // Upload any pasted images for the reply
+            if (replyPastedImages.length > 0) {
+                for (const imageFile of replyPastedImages) {
+                    await uploadAttachment(imageFile, comment.issue_id, reply.id);
+                }
+                setReplyPastedImages([]);
+            }
+
             setReplyContent('');
             setShowReplyForm(false);
         } catch (err) {
@@ -43,7 +56,73 @@ const Comment = ({ comment, onReply, onEdit, onDelete, level = 0 }) => {
             alert('Failed to reply to comment');
         } finally {
             setSubmittingReply(false);
+            setReplyUploading(false);
         }
+    };
+
+    const handleReplyPaste = async (e) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === 'file' && item.type.startsWith('image/')) {
+                e.preventDefault(); // Prevent default paste behavior
+                const file = item.getAsFile();
+
+                // Clear the editor if it's empty or only has placeholder content
+                const editor = replyEditorRef.current;
+                if (editor && (editor.textContent.trim() === '' || editor.innerHTML.trim() === '')) {
+                    editor.innerHTML = '';
+                }
+
+                // Create object URL for immediate display
+                const imageUrl = URL.createObjectURL(file);
+
+                // Create img element
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.alt = file.name || 'Pasted image';
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.display = 'block';
+                img.style.margin = '10px 0';
+                img.style.border = '1px solid #ddd';
+                img.style.borderRadius = '4px';
+
+                // Insert image at cursor position or at the end
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    range.deleteContents(); // Clear any selected content
+                    range.insertNode(img);
+
+                    // Move cursor after the image
+                    range.setStartAfter(img);
+                    range.setEndAfter(img);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } else {
+                    // No selection, append to end
+                    replyEditorRef.current.appendChild(img);
+                }
+
+                // Store file for upload later
+                setReplyPastedImages(prev => [...prev, { file, imageUrl }]);
+
+                // Update the reply content with the current content
+                updateReplyFromEditor();
+            }
+        }
+    };
+
+    const updateReplyFromEditor = () => {
+        if (replyEditorRef.current) {
+            const content = replyEditorRef.current.innerHTML;
+            setReplyContent(content);
+        }
+    };
+
+    const handleReplyChange = () => {
+        updateReplyFromEditor();
     };
 
     const handleDelete = async () => {
@@ -169,20 +248,56 @@ const Comment = ({ comment, onReply, onEdit, onDelete, level = 0 }) => {
 
                 {showReplyForm && (
                     <div className="mt-3">
-                        <textarea
-                            value={replyContent}
-                            onChange={(e) => setReplyContent(e.target.value)}
-                            className="textarea w-full mb-2"
-                            rows="2"
-                            placeholder="Write a reply..."
+                        <div
+                            ref={replyEditorRef}
+                            contentEditable
+                            onInput={handleReplyChange}
+                            onPaste={handleReplyPaste}
+                            style={{
+                                minHeight: '60px',
+                                maxHeight: '200px',
+                                overflow: 'auto',
+                                border: '1px solid #ccc',
+                                borderRadius: '4px',
+                                padding: '8px',
+                                fontSize: '14px',
+                                lineHeight: '1.4',
+                                backgroundColor: 'white',
+                                whiteSpace: 'pre-wrap',
+                                outline: 'none',
+                                marginBottom: '8px'
+                            }}
+                            data-placeholder="Write a reply... (You can paste images directly here)"
+                            suppressContentEditableWarning={true}
+                            onFocus={(e) => {
+                                // Clear placeholder text when focused
+                                if (e.target.textContent === '') {
+                                    e.target.innerHTML = '';
+                                }
+                            }}
                         />
+                        <style jsx>{`
+                            [contenteditable]:empty:before {
+                                content: attr(data-placeholder);
+                                color: #999;
+                                font-style: italic;
+                                pointer-events: none;
+                            }
+                            [contenteditable]:focus:before {
+                                content: none;
+                            }
+                            [contenteditable] img {
+                                pointer-events: auto;
+                            }
+                        `}</style>
+
                         <div className="flex gap">
                             <button
                                 onClick={handleReply}
-                                disabled={!replyContent.trim() || submittingReply}
+                                disabled={!replyContent.trim() || submittingReply || replyUploading}
                                 className="button primary small"
                             >
-                                {submittingReply ? 'Posting...' : 'Post Reply'}
+                                {replyUploading ? 'Uploading...' : (submittingReply ? 'Posting...' : 'Post Reply')}
                             </button>
                             <button
                                 onClick={() => {
@@ -224,6 +339,9 @@ export default function Comments({ issueId }) {
     const [error, setError] = useState(null);
     const [newComment, setNewComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [pastedImages, setPastedImages] = useState([]);
+    const [uploading, setUploading] = useState(false);
+    const commentEditorRef = useRef(null);
 
     const loadComments = async () => {
         try {
@@ -274,8 +392,17 @@ export default function Comments({ issueId }) {
         if (!newComment.trim()) return;
 
         setSubmitting(true);
+        setUploading(true);
         try {
             const comment = await createComment(issueId, newComment.trim());
+
+            // Upload any pasted images for the new comment
+            if (pastedImages.length > 0) {
+                for (const imageFile of pastedImages) {
+                    await uploadAttachment(imageFile, parseInt(issueId), comment.id);
+                }
+                setPastedImages([]);
+            }
 
             // Emit socket event for real-time updates
             socketService.emitCommentCreated({
@@ -290,7 +417,72 @@ export default function Comments({ issueId }) {
             alert('Failed to create comment');
         } finally {
             setSubmitting(false);
+            setUploading(false);
         }
+    }; const handlePaste = async (e) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === 'file' && item.type.startsWith('image/')) {
+                e.preventDefault(); // Prevent default paste behavior
+                const file = item.getAsFile();
+
+                // Clear the editor if it's empty or only has placeholder content
+                if (commentEditorRef.current &&
+                    (commentEditorRef.current.textContent.trim() === '' ||
+                        commentEditorRef.current.innerHTML.trim() === '')) {
+                    commentEditorRef.current.innerHTML = '';
+                }
+
+                // Create object URL for immediate display
+                const imageUrl = URL.createObjectURL(file);
+
+                // Create img element
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.alt = file.name || 'Pasted image';
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.display = 'block';
+                img.style.margin = '10px 0';
+                img.style.border = '1px solid #ddd';
+                img.style.borderRadius = '4px';
+
+                // Insert image at cursor position or at the end
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    range.deleteContents(); // Clear any selected content
+                    range.insertNode(img);
+
+                    // Move cursor after the image
+                    range.setStartAfter(img);
+                    range.setEndAfter(img);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } else {
+                    // No selection, append to end
+                    commentEditorRef.current.appendChild(img);
+                }
+
+                // Store file for upload later
+                setPastedImages(prev => [...prev, { file, imageUrl }]);
+
+                // Update the comment content with the current content
+                updateCommentFromEditor();
+            }
+        }
+    };
+
+    const updateCommentFromEditor = () => {
+        if (commentEditorRef.current) {
+            const content = commentEditorRef.current.innerHTML;
+            setNewComment(content);
+        }
+    };
+
+    const handleCommentChange = () => {
+        updateCommentFromEditor();
     };
 
     const handleReply = async (parentCommentId, content) => {
@@ -347,19 +539,61 @@ export default function Comments({ issueId }) {
                         {user?.role}
                     </span>
                 </div>
-                <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    className="textarea w-full mb-2"
-                    rows="3"
-                    placeholder="Add a comment to this issue..."
+                <div
+                    ref={commentEditorRef}
+                    contentEditable
+                    onInput={handleCommentChange}
+                    onPaste={handlePaste}
+                    style={{
+                        minHeight: '80px',
+                        maxHeight: '300px',
+                        overflow: 'auto',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        padding: '12px',
+                        fontSize: '14px',
+                        lineHeight: '1.5',
+                        backgroundColor: 'white',
+                        whiteSpace: 'pre-wrap',
+                        outline: 'none',
+                        marginBottom: '12px'
+                    }}
+                    data-placeholder="Add a comment to this issue... (You can paste images directly here)"
+                    suppressContentEditableWarning={true}
+                    onFocus={(e) => {
+                        // Clear placeholder text when focused
+                        if (e.target.textContent === '') {
+                            e.target.innerHTML = '';
+                        }
+                    }}
                 />
+                <style jsx>{`
+                    [contenteditable]:empty:before {
+                        content: attr(data-placeholder);
+                        color: #999;
+                        font-style: italic;
+                        pointer-events: none;
+                    }
+                    [contenteditable]:focus:before {
+                        content: none;
+                    }
+                    [contenteditable] img {
+                        pointer-events: auto;
+                    }
+                `}</style>
+
+                {pastedImages.length > 0 && (
+                    <div className="mb-3">
+                        <p className="text-sm text-muted">Images will be uploaded when comment is posted.</p>
+                    </div>
+                )}
+
                 <button
                     onClick={handleCreateComment}
-                    disabled={!newComment.trim() || submitting}
+                    disabled={!newComment.trim() || submitting || uploading}
                     className="button primary"
                 >
-                    {submitting ? 'Posting...' : 'Post Comment'}
+                    {uploading ? 'Uploading Images...' : (submitting ? 'Posting...' : 'Post Comment')}
                 </button>
             </div>
 

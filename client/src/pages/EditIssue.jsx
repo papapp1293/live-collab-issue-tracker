@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { fetchIssues, updateIssue, fetchUsersByRole } from '../services/api';
+import { fetchIssue, updateIssue, fetchUsersByRole } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import socketService from '../services/socket';
+import { useImagePaste } from '../hooks/useImagePaste';
+import { imageUploadService } from '../services/imageUpload';
+import ContentEditor from '../components/ContentEditor';
 
 export default function EditIssue() {
     const { id } = useParams();
@@ -13,15 +16,28 @@ export default function EditIssue() {
     const [developers, setDevelopers] = useState([]);
     const [testers, setTesters] = useState([]);
     const [error, setError] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const descriptionRef = useRef(null);
+
+    // Use the image paste hook
+    const { pastedImages, clearPastedImages } = useImagePaste(descriptionRef, () => {
+        updateDescriptionFromEditor();
+    });
 
     const isManager = user?.role === 'manager';
 
     useEffect(() => {
-        fetchIssues().then((issues) => {
-            const found = issues.find((i) => i.id === parseInt(id));
-            if (found) setIssue(found);
-            else setError('Issue not found');
-        });
+        fetchIssue(id).then((foundIssue) => {
+            if (foundIssue) {
+                setIssue(foundIssue);
+                // Set initial content if editing
+                if (descriptionRef.current && foundIssue.description) {
+                    descriptionRef.current.innerHTML = foundIssue.description;
+                }
+            } else {
+                setError('Issue not found');
+            }
+        }).catch(() => setError('Failed to load issue'));
 
         fetchUsersByRole('developer').then(setDevelopers).catch(() => {
             if (isManager) setError('Failed to load developers');
@@ -52,6 +68,21 @@ export default function EditIssue() {
 
             const updatedIssue = await updateIssue(id, updateData);
 
+            // Upload any pasted images after issue update
+            if (pastedImages.length > 0) {
+                setUploading(true);
+                const uploadResults = await imageUploadService.uploadPastedImages(pastedImages, parseInt(id));
+
+                // Check for any failed uploads
+                const failedUploads = uploadResults.filter(result => !result.success);
+                if (failedUploads.length > 0) {
+                    console.warn('Some images failed to upload:', failedUploads);
+                }
+
+                clearPastedImages();
+                setUploading(false);
+            }
+
             // Emit Socket event for real-time updates
             socketService.emitIssueUpdated({ ...updatedIssue, id: parseInt(id) });
 
@@ -59,6 +90,18 @@ export default function EditIssue() {
         } catch (err) {
             console.error(err);
             setError('Failed to update issue');
+            setUploading(false);
+        }
+    };
+
+    const updateDescriptionFromEditor = () => {
+        if (descriptionRef.current) {
+            // Convert contentEditable content to HTML
+            const content = descriptionRef.current.innerHTML;
+            setIssue(prev => ({
+                ...prev,
+                description: content
+            }));
         }
     };
 
@@ -84,14 +127,14 @@ export default function EditIssue() {
                     required
                 />
 
-                <label htmlFor="description">Description</label>
-                <textarea
-                    id="description"
-                    name="description"
-                    value={issue.description}
-                    onChange={handleChange}
-                    rows="40"
-                    required
+                <label htmlFor="description">Description *</label>
+                <ContentEditor
+                    ref={descriptionRef}
+                    placeholder="Describe the issue... (You can paste images directly here)"
+                    minHeight="200px"
+                    maxHeight="400px"
+                    onContentChange={updateDescriptionFromEditor}
+                    initialContent={issue?.description || ''}
                 />
 
                 <label htmlFor="status">Status</label>
@@ -142,8 +185,8 @@ export default function EditIssue() {
                 {!isManager && <small className="text-muted">Only managers can assign testers</small>}
 
                 <div className="mt-3">
-                    <button type="submit" className="button primary">
-                        Update Issue
+                    <button type="submit" className="button primary" disabled={uploading}>
+                        {uploading ? 'Uploading Images...' : 'Update Issue'}
                     </button>
                 </div>
             </form>

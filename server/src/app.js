@@ -10,6 +10,7 @@ const userRoutes = require('./routes/userRoutes');
 const issueRoutes = require('./routes/issueRoutes');
 const authRoutes = require('./routes/authRoutes');
 const commentRoutes = require('./routes/commentRoutes');
+const attachmentRoutes = require('./routes/attachmentRoutes');
 const authenticateToken = require('./middleware/authMiddleware');
 
 dotenv.config();
@@ -28,6 +29,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', authenticateToken, userRoutes);
 app.use('/api/issues', authenticateToken, issueRoutes);
 app.use('/api/comments', authenticateToken, commentRoutes);
+app.use('/api/attachments', attachmentRoutes);
 
 // Default error handling
 app.use((req, res) => {
