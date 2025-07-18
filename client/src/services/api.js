@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BASE_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
 
 // Helper function to get headers with auth token
 const getHeaders = () => {
@@ -176,6 +176,103 @@ export const generateAISummary = async (issueId) => {
   });
   if (!res.ok) throw new Error('Failed to generate AI summary');
   return res.json();
+};
+
+// Advanced search and filtering
+export const searchIssues = async (filters = {}) => {
+  const queryParams = new URLSearchParams();
+
+  // Add filters to query params
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      queryParams.append(key, value);
+    }
+  });
+
+  const url = `${BASE_URL}/api/issues/search?${queryParams}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: getHeaders(),
+    });
+
+    if (!res.ok) {
+      let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+
+      try {
+        const errorText = await res.text();
+        console.error('Search error response:', errorText);
+
+        // Try to parse as JSON for better error details
+        if (errorText.startsWith('{')) {
+          const errorData = JSON.parse(errorText);
+          if (errorData.details) {
+            errorMessage = errorData.details;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        }
+      } catch (parseError) {
+        console.error('Failed to parse error response:', parseError);
+      }
+
+      if (res.status === 401) {
+        throw new Error('Authentication required. Please log in to search issues.');
+      } else if (res.status === 403) {
+        throw new Error('Access denied. You don\'t have permission to search issues.');
+      } else if (res.status === 500) {
+        throw new Error(`Server error: ${errorMessage}`);
+      } else {
+        throw new Error(`Search failed: ${errorMessage}`);
+      }
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error('Search error:', error);
+    throw error;
+  }
+};
+
+// Get filter options for dropdowns
+export const getFilterOptions = async () => {
+  try {
+    const [developers, testers] = await Promise.all([
+      fetchUsersByRole('developer'),
+      fetchUsersByRole('tester')
+    ]);
+
+    return {
+      developers,
+      testers,
+      statuses: [
+        { value: 'open', label: 'Open' },
+        { value: 'in_progress', label: 'In Progress' },
+        { value: 'closed', label: 'Closed' }
+      ],
+      assignmentStatuses: [
+        { value: 'unassigned', label: 'Unassigned' },
+        { value: 'needs_developer', label: 'Needs Developer' },
+        { value: 'needs_tester', label: 'Needs Tester' },
+        { value: 'fully_assigned', label: 'Fully Assigned' }
+      ],
+      sortOptions: [
+        { value: 'created_at', label: 'Created Date' },
+        { value: 'title', label: 'Title' },
+        { value: 'status', label: 'Status' }
+      ]
+    };
+  } catch (error) {
+    console.error('Failed to fetch filter options:', error);
+    return {
+      developers: [],
+      testers: [],
+      statuses: [],
+      assignmentStatuses: [],
+      sortOptions: []
+    };
+  }
 };
 
 // ===== COMMENT API FUNCTIONS =====

@@ -3,6 +3,9 @@ import { fetchIssues, deleteIssue, fetchUsersByRole, assignDeveloper, assignTest
 import { Link, useNavigate } from 'react-router-dom';
 import socketService from '../services/socket';
 import { useAuth } from '../contexts/AuthContext';
+import { useAdvancedSearch } from '../hooks/useAdvancedSearch';
+import AdvancedSearch from '../components/AdvancedSearch';
+import SearchResults from '../components/SearchResults';
 
 export default function IssueList() {
   const [issues, setIssues] = useState([]);
@@ -18,8 +21,24 @@ export default function IssueList() {
   const [assignmentModal, setAssignmentModal] = useState(null);
   const [selectedDeveloper, setSelectedDeveloper] = useState('');
   const [selectedTester, setSelectedTester] = useState('');
+  const [viewMode, setViewMode] = useState('all'); // 'all' or 'search'
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Advanced search functionality
+  const {
+    searchResults,
+    pagination,
+    loading: searchLoading,
+    error: searchError,
+    filters,
+    filterOptions,
+    hasActiveFilters,
+    handleSearch,
+    handleLoadMore,
+    clearSearch,
+    getSearchSummary
+  } = useAdvancedSearch();
 
   useEffect(() => {
     fetchIssues()
@@ -203,26 +222,84 @@ export default function IssueList() {
 
     if (success) {
       closeAssignmentModal();
+      // Refresh data based on current view mode
+      if (viewMode === 'search' && hasActiveFilters) {
+        handleSearch(filters);
+      } else {
+        // Refresh all issues
+        const updatedIssues = await fetchIssues();
+        setIssues(updatedIssues);
+      }
     }
   };
 
-  if (loading)
-    return (
-      <p className="p">Loading issues...</p>
-    );
-  if (error)
-    return (
-      <p className="alert error">{error}</p>
-    );
+  // Handle switching between view modes
+  const handleSearchModeToggle = (enableSearch) => {
+    setViewMode(enableSearch ? 'search' : 'all');
+  };
+
+  // Handle search
+  const onSearch = (searchFilters) => {
+    setViewMode('search');
+    handleSearch(searchFilters);
+  };
+
+  // Handle clear search
+  const onClearSearch = () => {
+    setViewMode('all');
+    clearSearch();
+  };
+
+  // Handle assignment actions from search results
+  const handleIssueAction = (action, issue) => {
+    if (action === 'assign') {
+      openAssignmentModal(issue);
+    }
+  };
+
+  // Get current data based on view mode
+  const getCurrentData = () => {
+    if (viewMode === 'search') {
+      return {
+        issues: searchResults,
+        loading: searchLoading,
+        error: searchError,
+        pagination
+      };
+    }
+
+    return {
+      issues,
+      loading,
+      error,
+      pagination: null
+    };
+  };
+
+  const currentData = getCurrentData();
+
+  // Only show loading/error for initial "all issues" load
+  if (viewMode === 'all' && loading && issues.length === 0) {
+    return <p className="p">Loading issues...</p>;
+  }
+
+  if (viewMode === 'all' && error && issues.length === 0) {
+    return <p className="alert error">{error}</p>;
+  }
 
   return (
     <div className="container">
-      <div className="flex space-between middle mb-3">
+      <div className="flex space-between middle mb-4">
         <div className="flex middle gap">
           <h2 className="title">All Issues</h2>
-          {issues.length > 0 && (
+          {viewMode === 'search' && hasActiveFilters && (
             <span className="badge primary small">
-              {issues.length} issue{issues.length !== 1 ? 's' : ''}
+              Search: {getSearchSummary()}
+            </span>
+          )}
+          {currentData.issues.length > 0 && (
+            <span className="badge primary small">
+              {currentData.pagination?.total || currentData.issues.length} issue{(currentData.pagination?.total || currentData.issues.length) !== 1 ? 's' : ''}
             </span>
           )}
           <span className="badge success small">
@@ -244,112 +321,160 @@ export default function IssueList() {
         </div>
       </div>
 
-      {deleteMode ? (
-        <div className="flex gap">
-          <button className="button secondary small" onClick={toggleDeleteMode}>
-            Cancel
-          </button>
+      {/* Advanced Search Component */}
+      <AdvancedSearch
+        onSearch={onSearch}
+        onClear={onClearSearch}
+        filterOptions={filterOptions}
+        initialFilters={filters}
+        loading={searchLoading}
+      />
+
+      {/* Toggle between view modes */}
+      {viewMode === 'search' && (
+        <div className="flex space-between middle mb-4">
           <button
-            disabled={selectedIssues.length === 0}
-            onClick={() => setConfirmDelete(true)}
-            className={`button danger small${selectedIssues.length === 0 ? ' disabled' : ''}`}
+            onClick={() => handleSearchModeToggle(false)}
+            className="button secondary small"
           >
-            Delete ({selectedIssues.length})
+            ← Back to All Issues
           </button>
+          <div className="text-muted">
+            {hasActiveFilters ? 'Showing filtered results' : 'Showing all issues'}
+          </div>
         </div>
-      ) : (
-        <button className="button danger small mb-3" onClick={toggleDeleteMode}>
-          Delete
-        </button>
       )}
 
-      {issues.length === 0 ? (
-        <p className="text-muted mt-3">🚫 No issues found. Create one above.</p>
+      {/* Results Display */}
+      {viewMode === 'search' ? (
+        <>
+          {currentData.error && (
+            <div className="alert error mb-4">
+              <strong>Search Error:</strong> {currentData.error}
+            </div>
+          )}
+          <SearchResults
+            issues={currentData.issues}
+            pagination={currentData.pagination}
+            loading={currentData.loading}
+            onLoadMore={handleLoadMore}
+            onIssueAction={handleIssueAction}
+            showActions={true}
+            showAssignments={true}
+          />
+        </>
       ) : (
-        <ul>
-          {issues.map((issue) => (
-            <li
-              key={issue.id}
-              className="card card-hover flex middle gap"
-              style={{ cursor: deleteMode ? 'default' : 'pointer' }}
-              onClick={() => !deleteMode && navigate(`/issues/${issue.id}`)}
-            >
-              {deleteMode && (
-                <input
-                  type="checkbox"
-                  checked={selectedIssues.includes(issue.id)}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    handleCheckboxChange(issue.id);
-                  }}
-                />
-              )}
-              <div className="flex-grow">
-                <div className="flex middle gap">
-                  <h3>{issue.title}</h3>
-                  {typingUsers.has(issue.id) && (
-                    <span className="badge warning small animate-pulse">
-                      ✏️ {Array.from(typingUsers.get(issue.id)).join(', ')} editing...
-                    </span>
-                  )}
-                </div>
+        <>
+          {/* Original Issue List UI for "All Issues" mode */}
+          {deleteMode ? (
+            <div className="flex gap">
+              <button className="button secondary small" onClick={toggleDeleteMode}>
+                Cancel
+              </button>
+              <button
+                disabled={selectedIssues.length === 0}
+                onClick={() => setConfirmDelete(true)}
+                className={`button danger small${selectedIssues.length === 0 ? ' disabled' : ''}`}
+              >
+                Delete ({selectedIssues.length})
+              </button>
+            </div>
+          ) : (
+            <button className="button danger small mb-3" onClick={toggleDeleteMode}>
+              Delete
+            </button>
+          )}
 
-                {issue.ai_summary ? (
-                  <div className="alert success mt-2 mb-2" style={{ padding: '8px 12px' }}>
-                    <strong>🤖 AI Summary:</strong> {issue.ai_summary}
+          {currentData.issues.length === 0 && !currentData.loading ? (
+            <p className="text-muted mt-3">🚫 No issues found. Create one above.</p>
+          ) : (
+            <ul>
+              {currentData.issues.map((issue) => (
+                <li
+                  key={issue.id}
+                  className="card card-hover flex middle gap"
+                  style={{ cursor: deleteMode ? 'default' : 'pointer' }}
+                  onClick={() => !deleteMode && navigate(`/issues/${issue.id}`)}
+                >
+                  {deleteMode && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIssues.includes(issue.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleCheckboxChange(issue.id);
+                      }}
+                    />
+                  )}
+
+                  <div className="flex-grow">
+                    <div className="flex middle gap">
+                      <h3>{issue.title}</h3>
+                      {typingUsers.has(issue.id) && (
+                        <span className="badge warning small animate-pulse">
+                          ✏️ {Array.from(typingUsers.get(issue.id)).join(', ')} editing...
+                        </span>
+                      )}
+                    </div>
+
+                    {issue.ai_summary ? (
+                      <div className="alert success mt-2 mb-2" style={{ padding: '8px 12px' }}>
+                        <strong>🤖 AI Summary:</strong> {issue.ai_summary}
+                      </div>
+                    ) : (
+                      <div
+                        className="text-muted"
+                        dangerouslySetInnerHTML={{ __html: issue.description }}
+                      />
+                    )}
+
+                    <div className="flex gap wrap mt-1">
+                      <span className="badge primary" style={{ textTransform: 'capitalize' }}>
+                        {issue.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <div className="mt-1">
+                      {issue.assigned_developer_name && (
+                        <div className="mb-1">
+                          <span className="badge secondary">
+                            Developer: {issue.assigned_developer_name}
+                          </span>
+                        </div>
+                      )}
+                      {issue.assigned_tester_name && (
+                        <div className="mb-1">
+                          <span className="badge secondary">
+                            Tester: {issue.assigned_tester_name}
+                          </span>
+                        </div>
+                      )}
+                      {!issue.assigned_developer_name && !issue.assigned_tester_name && (
+                        <div className="mb-1">
+                          <span className="badge danger">
+                            Unassigned
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  <div
-                    className="text-muted"
-                    dangerouslySetInnerHTML={{ __html: issue.description }}
-                  />
-                )}
-
-                <div className="flex gap wrap mt-1">
-                  <span className="badge primary" style={{ textTransform: 'capitalize' }}>
-                    {issue.status.replace('_', ' ')}
-                  </span>
-                </div>
-                <div className="mt-1">
-                  {issue.assigned_developer_name && (
-                    <div className="mb-1">
-                      <span className="badge secondary">
-                        Developer: {issue.assigned_developer_name}
-                      </span>
+                  {user?.role === 'manager' && (
+                    <div className="flex gap" style={{ marginLeft: '1rem' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openAssignmentModal(issue);
+                        }}
+                        className="button primary small"
+                      >
+                        👥 Assign
+                      </button>
                     </div>
                   )}
-                  {issue.assigned_tester_name && (
-                    <div className="mb-1">
-                      <span className="badge secondary">
-                        Tester: {issue.assigned_tester_name}
-                      </span>
-                    </div>
-                  )}
-                  {!issue.assigned_developer_name && !issue.assigned_tester_name && (
-                    <div className="mb-1">
-                      <span className="badge danger">
-                        Unassigned
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {user?.role === 'manager' && (
-                <div className="flex gap" style={{ marginLeft: '1rem' }}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openAssignmentModal(issue);
-                    }}
-                    className="button primary small"
-                  >
-                    👥 Assign
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
       {confirmDelete && (

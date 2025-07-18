@@ -3,6 +3,7 @@ const router = express.Router();
 const IssueModel = require('../models/issueModel');
 const UserModel = require('../models/userModel');
 const openaiService = require('../services/openaiService');
+const db = require('../utils/db');
 
 // Get issues based on user role
 router.get('/', async (req, res) => {
@@ -83,6 +84,45 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch issues' });
+  }
+});
+
+// Advanced search and filtering endpoint (must come before /:id route)
+router.get('/search', async (req, res) => {
+  try {
+    const filters = {
+      search: req.query.search || '',
+      status: req.query.status || '',
+      assigned_developer: req.query.assigned_developer || '',
+      assigned_tester: req.query.assigned_tester || '',
+      date_from: req.query.date_from || '',
+      date_to: req.query.date_to || '',
+      assignment_status: req.query.assignment_status || '',
+      has_ai_summary: req.query.has_ai_summary || '',
+      sort_by: req.query.sort_by || 'created_at',
+      sort_order: req.query.sort_order || 'DESC',
+      limit: parseInt(req.query.limit) || 50,
+      offset: parseInt(req.query.offset) || 0
+    };
+
+    // Get filtered results
+    const issues = await IssueModel.searchIssues(filters);
+
+    // Get total count for pagination
+    const totalCount = await IssueModel.getSearchResultsCount(filters);
+
+    res.json({
+      issues,
+      pagination: {
+        total: totalCount,
+        limit: filters.limit,
+        offset: filters.offset,
+        hasMore: (filters.offset + filters.limit) < totalCount
+      }
+    });
+  } catch (err) {
+    console.error('Search error:', err);
+    res.status(500).json({ error: 'Failed to search issues', details: err.message });
   }
 });
 
